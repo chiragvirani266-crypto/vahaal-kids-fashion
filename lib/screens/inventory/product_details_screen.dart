@@ -4,6 +4,7 @@ import '../../core/constants/app_constants.dart';
 import '../../models/product_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/product_provider.dart';
+import '../../services/receipt_service.dart';
 import '../../theme/app_colors.dart';
 import 'edit_product_screen.dart';
 
@@ -437,6 +438,16 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                               ),
                             ),
                           ],
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          tooltip: 'Print Barcode Sticker',
+                          icon: const Icon(Icons.qr_code_2_rounded, size: 20, color: AppColors.primary),
+                          onPressed: () => ReceiptService.showLabelPrint(
+                            context,
+                            v,
+                            product: product,
+                          ),
                         ),
                       ],
                     ),
