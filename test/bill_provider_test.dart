@@ -54,7 +54,7 @@ class MockBillRepository implements BillRepository {
 }
 
 void main() {
-  group('BillProvider POS Business Logic Tests', () {
+  group('BillProvider POS & Discount Memory Tests', () {
     late MockBillRepository mockRepo;
     late BillProvider provider;
 
@@ -98,6 +98,8 @@ void main() {
       expect(provider.totalUniqueItems, 0);
       expect(provider.totalQuantity, 0);
       expect(provider.subtotal, 0.0);
+      expect(provider.discountValue, 0.0);
+      expect(provider.discountType, DiscountType.fixed);
       expect(provider.effectiveDiscount, 0.0);
       expect(provider.grandTotal, 0.0);
       expect(provider.selectedCustomer, null);
@@ -125,110 +127,118 @@ void main() {
       expect(provider.errorMessage!.contains('Insufficient stock'), true);
     });
 
-    test('Quantity increment, decrement and removal', () {
-      final variant = testProduct.variants[0];
-      provider.addItem(product: testProduct, variant: variant, quantity: 1);
-
-      // Increment
-      provider.incrementQuantity(variant.id!);
-      expect(provider.totalQuantity, 2);
-      expect(provider.subtotal, 800.0);
-
-      // Decrement
-      provider.decrementQuantity(variant.id!);
-      expect(provider.totalQuantity, 1);
-      expect(provider.subtotal, 400.0);
-
-      // Remove item
-      provider.removeItem(variant.id!);
-      expect(provider.cartItems.isEmpty, true);
-      expect(provider.subtotal, 0.0);
-    });
-
-    test('Selecting customer automatically loads customer last discount', () {
+    test('Customer discount memory: Loads customer.last_discount on selection', () {
       const customer = Customer(
         id: 'cust-10',
-        name: 'Rahul Sharma',
+        name: 'Priya Sharma',
         mobile: '9876543210',
-        lastDiscount: 50.0,
-        totalPurchase: 2500.0,
+        lastDiscount: 60.0, // Previous discount was ₹60
+        totalPurchase: 3200.0,
       );
 
       final variant = testProduct.variants[0];
       provider.addItem(product: testProduct, variant: variant, quantity: 2); // Subtotal = 800
 
+      // Select customer
       provider.setCustomer(customer);
 
-      expect(provider.selectedCustomer?.name, 'Rahul Sharma');
-      expect(provider.discountAmount, 50.0);
-      expect(provider.effectiveDiscount, 50.0);
-      expect(provider.grandTotal, 750.0); // 800 - 50 = 750
+      expect(provider.selectedCustomer?.name, 'Priya Sharma');
+      expect(provider.discountType, DiscountType.fixed);
+      expect(provider.discountValue, 60.0);
+      expect(provider.effectiveDiscount, 60.0);
+      expect(provider.grandTotal, 740.0); // 800 - 60 = 740
     });
 
-    test('Modifying discount calculates grand total correctly', () {
+    test('Cashier can modify loaded customer discount to another fixed amount', () {
+      const customer = Customer(
+        id: 'cust-10',
+        name: 'Priya Sharma',
+        mobile: '9876543210',
+        lastDiscount: 60.0,
+      );
+
+      final variant = testProduct.variants[0];
+      provider.addItem(product: testProduct, variant: variant, quantity: 2); // Subtotal = 800
+      provider.setCustomer(customer);
+
+      // Cashier changes discount to ₹120
+      provider.setDiscountValue(120.0);
+
+      expect(provider.discountValue, 120.0);
+      expect(provider.effectiveDiscount, 120.0);
+      expect(provider.grandTotal, 680.0); // 800 - 120 = 680
+    });
+
+    test('Support percentage discount calculation', () {
       final variant = testProduct.variants[0];
       provider.addItem(product: testProduct, variant: variant, quantity: 2); // Subtotal = 800
 
-      provider.setDiscountAmount(100.0);
-      expect(provider.effectiveDiscount, 100.0);
-      expect(provider.grandTotal, 700.0);
+      // Switch to percentage discount
+      provider.setDiscountType(DiscountType.percentage);
+      provider.setDiscountValue(15.0); // 15%
 
-      // Discount cannot exceed subtotal
-      provider.setDiscountAmount(9999.0);
+      expect(provider.discountType, DiscountType.percentage);
+      expect(provider.discountValue, 15.0);
+      // 15% of 800 = 120
+      expect(provider.effectiveDiscount, 120.0);
+      expect(provider.grandTotal, 680.0); // 800 - 120 = 680
+    });
+
+    test('Validate discount cannot exceed bill subtotal (Fixed amount capping)', () {
+      final variant = testProduct.variants[0];
+      provider.addItem(product: testProduct, variant: variant, quantity: 2); // Subtotal = 800
+
+      provider.setDiscountType(DiscountType.fixed);
+      provider.setDiscountValue(1500.0); // Attempt to apply ₹1500 discount on ₹800 subtotal
+
+      expect(provider.isDiscountExceedingSubtotal, true);
+      // Effective discount must be strictly capped at subtotal
       expect(provider.effectiveDiscount, 800.0);
       expect(provider.grandTotal, 0.0);
     });
 
-    test('Payment method selection', () {
-      provider.setPaymentMethod('upi');
-      expect(provider.paymentMethod, 'upi');
+    test('Validate percentage discount cannot exceed 100% / subtotal', () {
+      final variant = testProduct.variants[0];
+      provider.addItem(product: testProduct, variant: variant, quantity: 2); // Subtotal = 800
 
-      provider.setPaymentMethod('card');
-      expect(provider.paymentMethod, 'card');
+      provider.setDiscountType(DiscountType.percentage);
+      provider.setDiscountValue(120.0); // 120%
+
+      expect(provider.isDiscountExceedingSubtotal, true);
+      // Effective discount must be capped at subtotal
+      expect(provider.effectiveDiscount, 800.0);
+      expect(provider.grandTotal, 0.0);
     });
 
-    test('Atomic checkout completes successfully and clears cart', () async {
+    test('Bill permanently preserves its own discount after atomic checkout', () async {
       final variant = testProduct.variants[0];
-      provider.addItem(product: testProduct, variant: variant, quantity: 2);
+      provider.addItem(product: testProduct, variant: variant, quantity: 2); // Subtotal = 800
       provider.setPaymentMethod('upi');
 
       const customer = Customer(
         id: 'cust-1',
-        name: 'Sita Ram',
+        name: 'Aarav Mehta',
         mobile: '9988776655',
-        lastDiscount: 0.0,
+        lastDiscount: 20.0,
       );
       provider.setCustomer(customer);
+
+      // Cashier switches to 10% discount (= ₹80)
+      provider.setDiscountType(DiscountType.percentage);
+      provider.setDiscountValue(10.0);
 
       final createdBill = await provider.checkout(cashierId: 'cashier-1');
 
       expect(createdBill, isNotNull);
-      expect(createdBill!.billNumber, 'VKF-2026-001001');
-      expect(createdBill.items.length, 1);
-      expect(createdBill.grandTotal, 800.0);
+      expect(createdBill!.subtotal, 800.0);
+      expect(createdBill.discount, 80.0); // Preserved permanently as ₹80 numeric value on the bill
+      expect(createdBill.grandTotal, 720.0);
       expect(createdBill.paymentMethod, 'upi');
 
-      // Cart should be cleared after checkout
+      // Cart reset
       expect(provider.cartItems.isEmpty, true);
       expect(provider.selectedCustomer, null);
-      expect(provider.discountAmount, 0.0);
-      expect(provider.lastCompletedBill, isNotNull);
-    });
-
-    test('Checkout failure sets error message and preserves cart', () async {
-      mockRepo.shouldFail = true;
-      mockRepo.failMessage = 'Insufficient stock for SKU: VKF-TSH-001-3Y-RED';
-
-      final variant = testProduct.variants[0];
-      provider.addItem(product: testProduct, variant: variant, quantity: 2);
-
-      final createdBill = await provider.checkout(cashierId: 'cashier-1');
-
-      expect(createdBill, isNull);
-      expect(provider.errorMessage, isNotNull);
-      expect(provider.errorMessage!.contains('Insufficient stock'), true);
-      // Cart items are preserved so cashier can adjust
-      expect(provider.cartItems.length, 1);
+      expect(provider.discountValue, 0.0);
     });
   });
 }

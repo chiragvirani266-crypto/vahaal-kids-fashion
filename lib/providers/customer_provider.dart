@@ -186,6 +186,28 @@ class CustomerProvider extends ChangeNotifier {
     }
   }
 
+  /// Updates in-memory customer spend & last_discount after a checkout
+  void recordCustomerSaleLocally({
+    required String customerId,
+    required double saleAmount,
+    required double newLastDiscount,
+  }) {
+    final index = _customers.indexWhere((c) => c.id == customerId);
+    if (index != -1) {
+      final old = _customers[index];
+      final updated = old.copyWith(
+        totalPurchase: old.totalPurchase + saleAmount,
+        lastDiscount: newLastDiscount,
+        billsCount: old.billsCount + 1,
+      );
+      _customers[index] = updated;
+      if (_selectedCustomer?.id == customerId) {
+        _selectedCustomer = updated;
+      }
+      notifyListeners();
+    }
+  }
+
   void clearError() {
     if (_errorMessage != null) {
       _errorMessage = null;

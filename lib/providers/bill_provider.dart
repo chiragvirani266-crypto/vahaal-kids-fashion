@@ -6,6 +6,11 @@ import '../models/product_model.dart';
 import '../models/product_variant_model.dart';
 import '../repositories/bill_repository.dart';
 
+enum DiscountType {
+  fixed, // Fixed amount in Rupees (₹)
+  percentage, // Percentage (%)
+}
+
 class BillProvider extends ChangeNotifier {
   final BillRepository _repository;
 
@@ -16,7 +21,8 @@ class BillProvider extends ChangeNotifier {
   // State Variables
   List<BillItem> _cartItems = [];
   Customer? _selectedCustomer;
-  double _discountAmount = 0.0;
+  DiscountType _discountType = DiscountType.fixed;
+  double _discountValue = 0.0;
   String _paymentMethod = 'cash'; // 'cash' | 'upi' | 'card' | 'other'
   String _notes = '';
   String _previewBillNumber = 'VKF-POS';
@@ -31,7 +37,8 @@ class BillProvider extends ChangeNotifier {
   // Getters
   List<BillItem> get cartItems => List.unmodifiable(_cartItems);
   Customer? get selectedCustomer => _selectedCustomer;
-  double get discountAmount => _discountAmount;
+  DiscountType get discountType => _discountType;
+  double get discountValue => _discountValue;
   String get paymentMethod => _paymentMethod;
   String get notes => _notes;
   String get previewBillNumber => _previewBillNumber;
@@ -47,10 +54,28 @@ class BillProvider extends ChangeNotifier {
   double get subtotal =>
       _cartItems.fold(0.0, (sum, item) => sum + (item.unitPrice * item.quantity));
 
+  /// Calculates effective discount in Rupees (₹), strictly clamped to [0.0, subtotal]
   double get effectiveDiscount {
-    if (_discountAmount < 0) return 0.0;
-    if (_discountAmount > subtotal) return subtotal;
-    return _discountAmount;
+    if (subtotal <= 0 || _discountValue <= 0) return 0.0;
+
+    double calculated;
+    if (_discountType == DiscountType.percentage) {
+      calculated = (subtotal * _discountValue) / 100.0;
+    } else {
+      calculated = _discountValue;
+    }
+
+    if (calculated < 0) return 0.0;
+    if (calculated > subtotal) return subtotal;
+    return calculated;
+  }
+
+  /// Flag indicating if the entered discount exceeds subtotal or 100%
+  bool get isDiscountExceedingSubtotal {
+    if (_discountType == DiscountType.percentage) {
+      return _discountValue > 100.0;
+    }
+    return _discountValue > subtotal && subtotal > 0;
   }
 
   double get grandTotal {
@@ -67,7 +92,6 @@ class BillProvider extends ChangeNotifier {
       _previewBillNumber = await _repository.generateNextBillNumber();
       notifyListeners();
     } catch (_) {
-      // Fallback
       _previewBillNumber = 'VKF-POS';
     }
   }
@@ -207,7 +231,8 @@ class BillProvider extends ChangeNotifier {
 
   void clearCart() {
     _cartItems.clear();
-    _discountAmount = 0.0;
+    _discountType = DiscountType.fixed;
+    _discountValue = 0.0;
     _notes = '';
     _selectedCustomer = null;
     _errorMessage = null;
@@ -215,23 +240,45 @@ class BillProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Customer Management in POS
+  // Customer Management & Discount Memory in POS
+  /// When selecting an existing customer:
+  /// 1. Sets selected customer
+  /// 2. Automatically loads customer.last_discount as default fixed discount
   void setCustomer(Customer? customer) {
     _selectedCustomer = customer;
     _errorMessage = null;
 
     if (customer != null) {
-      // Feature requirement: Automatically load customer's last discount
-      _discountAmount = customer.lastDiscount;
+      // Customer discount memory: Load customer's last discount as default
+      _discountType = DiscountType.fixed;
+      _discountValue = customer.lastDiscount;
     } else {
-      _discountAmount = 0.0;
+      _discountType = DiscountType.fixed;
+      _discountValue = 0.0;
     }
 
     notifyListeners();
   }
 
-  void setDiscountAmount(double amount) {
-    _discountAmount = amount < 0 ? 0.0 : amount;
+  /// Sets discount mode (Fixed ₹ or Percentage %)
+  void setDiscountType(DiscountType type) {
+    if (_discountType != type) {
+      _discountType = type;
+      // If switching to percentage and value > 100, reset or clamp
+      if (_discountType == DiscountType.percentage && _discountValue > 100) {
+        _discountValue = 10.0;
+      }
+      notifyListeners();
+    }
+  }
+
+  /// Sets discount value (amount in ₹ or percentage in %)
+  void setDiscountValue(double value) {
+    if (value < 0) {
+      _discountValue = 0.0;
+    } else {
+      _discountValue = value;
+    }
     notifyListeners();
   }
 
@@ -273,6 +320,8 @@ class BillProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final finalEffectiveDiscount = effectiveDiscount;
+
       final billToCreate = Bill(
         billNumber: _previewBillNumber,
         customerId: _selectedCustomer?.id,
@@ -280,7 +329,7 @@ class BillProvider extends ChangeNotifier {
         customerMobileSnapshot: _selectedCustomer?.mobile ?? '',
         billDate: DateTime.now(),
         subtotal: subtotal,
-        discount: effectiveDiscount,
+        discount: finalEffectiveDiscount, // Preserved permanently on bill
         grandTotal: grandTotal,
         paymentMethod: _paymentMethod,
         notes: _notes.trim().isNotEmpty ? _notes.trim() : null,
@@ -297,7 +346,8 @@ class BillProvider extends ChangeNotifier {
 
       // Reset cart and prepare for next sale
       _cartItems = [];
-      _discountAmount = 0.0;
+      _discountType = DiscountType.fixed;
+      _discountValue = 0.0;
       _notes = '';
       _selectedCustomer = null;
       _isLoading = false;

@@ -170,10 +170,13 @@ class _BillingScreenState extends State<BillingScreen> {
         currentCustomer: billProvider.selectedCustomer,
         onSelect: (customer) {
           billProvider.setCustomer(customer);
-          _discountController.text =
-              customer != null && customer.lastDiscount > 0
-                  ? customer.lastDiscount.toStringAsFixed(0)
-                  : '';
+          if (customer != null && customer.lastDiscount > 0) {
+            _discountController.text = customer.lastDiscount.truncateToDouble() == customer.lastDiscount
+                ? customer.lastDiscount.toStringAsFixed(0)
+                : customer.lastDiscount.toStringAsFixed(2);
+          } else {
+            _discountController.text = '';
+          }
         },
       ),
     );
@@ -198,9 +201,18 @@ class _BillingScreenState extends State<BillingScreen> {
     );
 
     if (bill != null && mounted) {
+      // Sync customer's updated total purchase and last discount locally in memory
+      if (bill.customerId != null) {
+        context.read<CustomerProvider>().recordCustomerSaleLocally(
+              customerId: bill.customerId!,
+              saleAmount: bill.grandTotal,
+              newLastDiscount: bill.discount,
+            );
+      }
+
       // Reload stock to reflect inventory reduction
       context.read<ProductProvider>().loadProducts();
-      context.read<CustomerProvider>().loadCustomers();
+      context.read<CustomerProvider>().loadCustomers(refresh: true);
 
       _discountController.clear();
       _notesController.clear();
@@ -212,6 +224,8 @@ class _BillingScreenState extends State<BillingScreen> {
           bill: bill,
           onNewBill: () {
             billProvider.clearCart();
+            _discountController.clear();
+            _notesController.clear();
             _barcodeFocusNode.requestFocus();
           },
         ),
@@ -921,10 +935,100 @@ class _BillingScreenState extends State<BillingScreen> {
 
     return Column(
       children: [
-        const Divider(height: 16),
+        // Discount Header & Mode Toggle Row
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.local_offer_rounded, size: 14, color: AppColors.primary),
+                const SizedBox(width: 4),
+                const Text(
+                  'Discount',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+                if (billProvider.selectedCustomer != null && billProvider.selectedCustomer!.lastDiscount > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 6),
+                    child: Text(
+                      '(Memory: ₹${billProvider.selectedCustomer!.lastDiscount.toStringAsFixed(0)})',
+                      style: const TextStyle(fontSize: 10, color: AppColors.secondary, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+              ],
+            ),
+            // Mode Toggle: ₹ Fixed vs % Percentage
+            Container(
+              height: 28,
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.cardDark : AppColors.backgroundLight,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                ),
+              ),
+              child: Row(
+                children: [
+                  InkWell(
+                    onTap: () {
+                      billProvider.setDiscountType(DiscountType.fixed);
+                    },
+                    borderRadius: const BorderRadius.horizontal(left: Radius.circular(5)),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: billProvider.discountType == DiscountType.fixed
+                            ? AppColors.primary
+                            : Colors.transparent,
+                        borderRadius: const BorderRadius.horizontal(left: Radius.circular(5)),
+                      ),
+                      child: Text(
+                        '₹ Fixed',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: billProvider.discountType == DiscountType.fixed
+                              ? Colors.white
+                              : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                        ),
+                      ),
+                    ),
+                  ),
+                  InkWell(
+                    onTap: () {
+                      billProvider.setDiscountType(DiscountType.percentage);
+                    },
+                    borderRadius: const BorderRadius.horizontal(right: Radius.circular(5)),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: billProvider.discountType == DiscountType.percentage
+                            ? AppColors.primary
+                            : Colors.transparent,
+                        borderRadius: const BorderRadius.horizontal(right: Radius.circular(5)),
+                      ),
+                      child: Text(
+                        '% Percentage',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: billProvider.discountType == DiscountType.percentage
+                              ? Colors.white
+                              : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
 
         // Discount & Remarks Row
         Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Discount input
             Expanded(
@@ -932,15 +1036,18 @@ class _BillingScreenState extends State<BillingScreen> {
               child: TextFormField(
                 controller: _discountController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(
-                  labelText: 'Discount (₹)',
+                decoration: InputDecoration(
+                  labelText: billProvider.discountType == DiscountType.percentage
+                      ? 'Discount (%)'
+                      : 'Discount (₹)',
                   isDense: true,
-                  prefixText: '₹ ',
-                  contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  prefixText: billProvider.discountType == DiscountType.fixed ? '₹ ' : null,
+                  suffixText: billProvider.discountType == DiscountType.percentage ? ' %' : null,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                 ),
                 onChanged: (val) {
                   final parsed = double.tryParse(val.trim()) ?? 0.0;
-                  billProvider.setDiscountAmount(parsed);
+                  billProvider.setDiscountValue(parsed);
                 },
               ),
             ),
@@ -963,6 +1070,32 @@ class _BillingScreenState extends State<BillingScreen> {
             ),
           ],
         ),
+
+        // Subtotal Capping Warning
+        if (billProvider.isDiscountExceedingSubtotal)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            margin: const EdgeInsets.only(top: 6),
+            decoration: BoxDecoration(
+              color: AppColors.warning.withAlpha(20),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: AppColors.warning.withAlpha(60)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.info_outline_rounded, size: 14, color: AppColors.warning),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    billProvider.discountType == DiscountType.percentage
+                        ? 'Discount cannot exceed 100% (Capped at 100%)'
+                        : 'Discount exceeds subtotal (Capped at ₹${billProvider.subtotal.toStringAsFixed(2)})',
+                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.warning),
+                  ),
+                ),
+              ],
+            ),
+          ),
         const SizedBox(height: 10),
 
         // Payment Method Selector Pills
