@@ -13,11 +13,13 @@ import 'widgets/label_sticker_card.dart';
 class LabelPrintScreen extends StatefulWidget {
   final Product? initialProduct;
   final ProductVariant? initialVariant;
+  final bool isEmbedded;
 
   const LabelPrintScreen({
     super.key,
     this.initialProduct,
     this.initialVariant,
+    this.isEmbedded = false,
   });
 
   @override
@@ -539,6 +541,50 @@ class _LabelPrintScreenState extends State<LabelPrintScreen> {
     final isDesktop = MediaQuery.of(context).size.width >= 960;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    final body = productProvider.isLoading && productProvider.products.isEmpty
+        ? const Center(child: CircularProgressIndicator())
+        : isDesktop
+            ? _buildDesktopLayout(productProvider)
+            : _buildMobileLayout(productProvider);
+
+    if (widget.isEmbedded) {
+      return Container(
+        color: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.surfaceDark : Colors.white,
+                border: Border(
+                  bottom: BorderSide(
+                    color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.qr_code_2_rounded, color: AppColors.primary, size: 20),
+                  const SizedBox(width: 10),
+                  const Text(
+                    'Barcode Label Printing Workstation',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    tooltip: 'Label & Printer Settings',
+                    icon: const Icon(Icons.tune_rounded),
+                    onPressed: _showConfigSheet,
+                  ),
+                ],
+              ),
+            ),
+            Expanded(child: body),
+          ],
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Column(
@@ -563,11 +609,7 @@ class _LabelPrintScreenState extends State<LabelPrintScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      body: productProvider.isLoading && productProvider.products.isEmpty
-          ? const Center(child: CircularProgressIndicator())
-          : isDesktop
-              ? _buildDesktopLayout(productProvider)
-              : _buildMobileLayout(productProvider),
+      body: body,
       bottomNavigationBar: isDesktop ? null : _buildMobileBottomBar(),
     );
   }

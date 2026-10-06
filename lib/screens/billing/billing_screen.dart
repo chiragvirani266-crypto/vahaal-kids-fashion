@@ -6,12 +6,21 @@ import '../../providers/bill_provider.dart';
 import '../../providers/customer_provider.dart';
 import '../../providers/product_provider.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/common/app_confirm_dialog.dart';
+import '../../widgets/common/app_empty_state.dart';
+import '../../widgets/common/app_loading_state.dart';
+import '../../widgets/common/app_snackbar.dart';
 import 'widgets/bill_success_modal.dart';
 import 'widgets/customer_picker_dialog.dart';
 import 'widgets/variant_selector_dialog.dart';
 
 class BillingScreen extends StatefulWidget {
-  const BillingScreen({super.key});
+  final bool isEmbedded;
+
+  const BillingScreen({
+    super.key,
+    this.isEmbedded = false,
+  });
 
   @override
   State<BillingScreen> createState() => _BillingScreenState();
@@ -95,13 +104,7 @@ class _BillingScreenState extends State<BillingScreen> {
     }
 
     if (!found) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: AppColors.error,
-          content: Text('No item found matching barcode/SKU "$code".'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      AppSnackbar.showError(context, 'No item found matching barcode/SKU "$code".');
     }
 
     _barcodeScanController.clear();
@@ -109,20 +112,7 @@ class _BillingScreenState extends State<BillingScreen> {
   }
 
   void _showFeedback(String msg) {
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: AppColors.success,
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle, color: Colors.white, size: 18),
-            const SizedBox(width: 8),
-            Expanded(child: Text(msg)),
-          ],
-        ),
-        duration: const Duration(milliseconds: 1400),
-      ),
-    );
+    AppSnackbar.showSuccess(context, msg, duration: const Duration(milliseconds: 1400));
   }
 
   void _openVariantSelector(Product product) {
@@ -236,8 +226,75 @@ class _BillingScreenState extends State<BillingScreen> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final isDesktop = size.width > 900;
+    final isDesktop = size.width >= 900;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bodyContent = isDesktop ? _buildDesktopLayout() : _buildMobileLayout();
+
+    if (widget.isEmbedded) {
+      return Container(
+        color: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+        child: Column(
+          children: [
+            // Workstation POS Sub-header Bar
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.surfaceDark : Colors.white,
+                border: Border(
+                  bottom: BorderSide(
+                    color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Consumer<BillProvider>(
+                      builder: (_, bp, __) => Row(
+                        children: [
+                          const Icon(Icons.point_of_sale_rounded, color: AppColors.primary, size: 16),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Active Invoice: ${bp.previewBillNumber}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  // Clear Cart Action with Confirmation Dialog
+                  Consumer<BillProvider>(
+                    builder: (context, bp, _) {
+                      if (bp.cartItems.isEmpty) return const SizedBox.shrink();
+                      return OutlinedButton.icon(
+                        icon: const Icon(Icons.delete_sweep_rounded, size: 16, color: AppColors.error),
+                        label: const Text('Clear Cart', style: TextStyle(color: AppColors.error, fontSize: 12)),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: AppColors.error.withValues(alpha: 0.5)),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        ),
+                        onPressed: () => _confirmClearCart(bp),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+            Expanded(child: bodyContent),
+          ],
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
@@ -247,7 +304,7 @@ class _BillingScreenState extends State<BillingScreen> {
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: AppColors.primary.withAlpha(25),
+                color: AppColors.primary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(Icons.receipt_long_rounded, color: AppColors.primary, size: 20),
@@ -281,19 +338,32 @@ class _BillingScreenState extends State<BillingScreen> {
               return IconButton(
                 tooltip: 'Clear Cart',
                 icon: const Icon(Icons.delete_sweep_rounded, color: AppColors.error),
-                onPressed: () {
-                  bp.clearCart();
-                  _discountController.clear();
-                  _notesController.clear();
-                },
+                onPressed: () => _confirmClearCart(bp),
               );
             },
           ),
           const SizedBox(width: 8),
         ],
       ),
-      body: isDesktop ? _buildDesktopLayout() : _buildMobileLayout(),
+      body: bodyContent,
     );
+  }
+
+  Future<void> _confirmClearCart(BillProvider bp) async {
+    final confirmed = await AppConfirmDialog.show(
+      context,
+      title: 'Clear Cart?',
+      message: 'Are you sure you want to discard all items currently in this invoice?',
+      confirmLabel: 'Clear Cart',
+      isDestructive: true,
+      icon: Icons.delete_sweep_rounded,
+    );
+    if (confirmed == true && mounted) {
+      bp.clearCart();
+      _discountController.clear();
+      _notesController.clear();
+      AppSnackbar.showInfo(context, 'Cart cleared');
+    }
   }
 
   // ==========================================
@@ -496,7 +566,7 @@ class _BillingScreenState extends State<BillingScreen> {
     return Consumer<ProductProvider>(
       builder: (context, provider, _) {
         if (provider.isLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return const AppLoadingState(message: 'Loading catalog products...');
         }
 
         var products = provider.products.where((p) => p.isActive).toList();
@@ -522,25 +592,10 @@ class _BillingScreenState extends State<BillingScreen> {
         }
 
         if (products.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.inventory_2_outlined, size: 40, color: AppColors.textMutedLight),
-                const SizedBox(height: 8),
-                const Text('No matching products found', style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Text(
-                  'Try searching with another keyword or category',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? AppColors.textMutedDark
-                        : AppColors.textMutedLight,
-                  ),
-                ),
-              ],
-            ),
+          return const AppEmptyState(
+            icon: Icons.inventory_2_outlined,
+            title: 'No matching products found',
+            description: 'Try searching with another keyword or category',
           );
         }
 
@@ -760,30 +815,10 @@ class _BillingScreenState extends State<BillingScreen> {
         final error = billProvider.errorMessage;
 
         if (items.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.shopping_bag_outlined,
-                  size: 48,
-                  color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  'Cart is empty',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Scan barcode or select products to add to bill',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
-                  ),
-                ),
-              ],
-            ),
+          return const AppEmptyState(
+            icon: Icons.shopping_bag_outlined,
+            title: 'Cart is empty',
+            description: 'Scan barcode or select products to add to bill',
           );
         }
 

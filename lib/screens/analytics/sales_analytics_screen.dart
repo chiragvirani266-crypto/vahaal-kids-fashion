@@ -9,7 +9,12 @@ import 'widgets/top_customers_card.dart';
 import 'widgets/top_selling_products_card.dart';
 
 class SalesAnalyticsScreen extends StatefulWidget {
-  const SalesAnalyticsScreen({super.key});
+  final bool isEmbedded;
+
+  const SalesAnalyticsScreen({
+    super.key,
+    this.isEmbedded = false,
+  });
 
   @override
   State<SalesAnalyticsScreen> createState() => _SalesAnalyticsScreenState();
@@ -30,34 +35,15 @@ class _SalesAnalyticsScreenState extends State<SalesAnalyticsScreen> {
     final provider = context.watch<DashboardProvider>();
     final overview = provider.overview;
     final size = MediaQuery.of(context).size;
-    final isDesktop = size.width > 900;
+    final isDesktop = size.width >= 900;
 
     final avgBillValue =
         overview.totalBillsCount > 0 ? (overview.totalSales / overview.totalBillsCount) : 0.0;
 
-    return Scaffold(
-      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
-      appBar: AppBar(
-        title: const Row(
-          children: [
-            Icon(Icons.bar_chart_rounded, color: AppColors.primary, size: 22),
-            SizedBox(width: 10),
-            Text('Sales & Revenue Analytics'),
-          ],
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'Refresh Analytics',
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: () => provider.loadDashboard(refresh: true),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(isDesktop ? 24 : 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    final body = SingleChildScrollView(
+      padding: EdgeInsets.all(isDesktop ? 24 : 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Analytics Summary KPI Grid
             GridView.count(
@@ -174,7 +160,35 @@ class _SalesAnalyticsScreenState extends State<SalesAnalyticsScreen> {
               ),
           ],
         ),
+      );
+
+    if (widget.isEmbedded) {
+      return Container(
+        color: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+        child: body,
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+      appBar: AppBar(
+        title: const Row(
+          children: [
+            Icon(Icons.bar_chart_rounded, color: AppColors.primary, size: 22),
+            SizedBox(width: 10),
+            Text('Sales & Revenue Analytics'),
+          ],
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'Refresh Analytics',
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: () => provider.loadDashboard(refresh: true),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
+      body: body,
     );
   }
 }

@@ -7,10 +7,17 @@ import '../../models/bill_model.dart';
 import '../../providers/bill_provider.dart';
 import '../../services/receipt_service.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/common/app_empty_state.dart';
+import '../../widgets/common/app_loading_state.dart';
 import 'bill_details_screen.dart';
 
 class BillListScreen extends StatefulWidget {
-  const BillListScreen({super.key});
+  final bool isEmbedded;
+
+  const BillListScreen({
+    super.key,
+    this.isEmbedded = false,
+  });
 
   @override
   State<BillListScreen> createState() => _BillListScreenState();
@@ -19,6 +26,7 @@ class BillListScreen extends StatefulWidget {
 class _BillListScreenState extends State<BillListScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  bool _isTableView = true;
 
   @override
   void initState() {
@@ -88,32 +96,84 @@ class _BillListScreenState extends State<BillListScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bp = context.watch<BillProvider>();
     final bills = bp.billsHistory;
+    final size = MediaQuery.of(context).size;
+    final isDesktop = size.width >= 900;
 
-    return Scaffold(
-      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
-      appBar: AppBar(
-        title: const Row(
-          children: [
-            Icon(Icons.receipt_long_rounded, color: AppColors.primary, size: 22),
-            SizedBox(width: 10),
-            Text('Bills & Invoices', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-          ],
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'Refresh Bills',
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: () => bp.fetchBills(refresh: true),
+    final content = Column(
+      children: [
+        // Workstation Embedded Header
+        if (widget.isEmbedded)
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.surfaceDark : Colors.white,
+              border: Border(
+                bottom: BorderSide(
+                  color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                ),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.receipt_long_rounded, color: AppColors.primary, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Sales Invoices & Billing History',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    Text(
+                      '${bp.totalCount > 0 ? bp.totalCount : bills.length} records • Realtime Supabase Ledger',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                      ),
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                if (isDesktop) ...[
+                  SegmentedButton<bool>(
+                    segments: const [
+                      ButtonSegment(
+                        value: true,
+                        icon: Icon(Icons.table_chart_rounded, size: 16),
+                        label: Text('Table', style: TextStyle(fontSize: 12)),
+                      ),
+                      ButtonSegment(
+                        value: false,
+                        icon: Icon(Icons.view_agenda_rounded, size: 16),
+                        label: Text('Cards', style: TextStyle(fontSize: 12)),
+                      ),
+                    ],
+                    selected: {_isTableView},
+                    onSelectionChanged: (set) => setState(() => _isTableView = set.first),
+                    style: ButtonStyle(
+                      visualDensity: VisualDensity.compact,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                IconButton(
+                  tooltip: 'Refresh Bills',
+                  icon: const Icon(Icons.refresh_rounded),
+                  onPressed: () => bp.fetchBills(refresh: true),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: () => bp.fetchBills(refresh: true),
-        color: AppColors.primary,
-        child: Column(
-          children: [
-            // Top Search & Filter Bar
+
+        // Top Search & Filter Bar
             Container(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
               decoration: BoxDecoration(
@@ -308,21 +368,26 @@ class _BillListScreenState extends State<BillListScreen> {
               ),
             ),
 
-            // Main Bills List / Grid
-            Expanded(
-              child: bp.isHistoryLoading
-                  ? const Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          CircularProgressIndicator(),
-                          SizedBox(height: 16),
-                          Text('Searching bills on server...'),
-                        ],
-                      ),
+        // Main Bills List / Grid / Desktop Table
+        Expanded(
+          child: bp.isHistoryLoading
+              ? const AppLoadingState(message: 'Searching bills on server...')
+              : bills.isEmpty
+                  ? AppEmptyState(
+                      icon: Icons.receipt_long_rounded,
+                      title: 'No Bills Found',
+                      description: bp.searchQuery.isNotEmpty
+                          ? 'No invoices match "${bp.searchQuery}". Try changing search keywords or date range.'
+                          : 'No invoices found for the selected filters.',
+                      actionLabel: 'Reset All Filters',
+                      actionIcon: Icons.clear_all_rounded,
+                      onAction: () {
+                        _searchController.clear();
+                        bp.resetFilters();
+                      },
                     )
-                  : bills.isEmpty
-                      ? _buildEmptyState(bp, isDark)
+                  : (isDesktop && _isTableView
+                      ? _buildDesktopTable(context, bills, isDark)
                       : ListView.separated(
                           controller: _scrollController,
                           physics: const AlwaysScrollableScrollPhysics(),
@@ -351,60 +416,243 @@ class _BillListScreenState extends State<BillListScreen> {
                             final bill = bills[index];
                             return _buildBillCard(bill, isDark);
                           },
-                        ),
-            ),
+                        )),
+        ),
+      ],
+    );
+
+    if (widget.isEmbedded) {
+      return Container(
+        color: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+        child: content,
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+      appBar: AppBar(
+        title: const Row(
+          children: [
+            Icon(Icons.receipt_long_rounded, color: AppColors.primary, size: 22),
+            SizedBox(width: 10),
+            Text('Bills & Invoices', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
           ],
         ),
+        actions: [
+          if (isDesktop)
+            IconButton(
+              icon: Icon(_isTableView ? Icons.view_agenda_rounded : Icons.table_chart_rounded),
+              tooltip: _isTableView ? 'Switch to Cards View' : 'Switch to Data Table',
+              onPressed: () => setState(() => _isTableView = !_isTableView),
+            ),
+          IconButton(
+            tooltip: 'Refresh Bills',
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: () => bp.fetchBills(refresh: true),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: () => bp.fetchBills(refresh: true),
+        color: AppColors.primary,
+        child: content,
       ),
     );
   }
 
-  Widget _buildEmptyState(BillProvider bp, bool isDark) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withAlpha(20),
-                shape: BoxShape.circle,
+  // ==========================================
+  // RESPONSIVE DESKTOP INVOICES TABLE
+  // ==========================================
+  Widget _buildDesktopTable(BuildContext context, List<Bill> bills, bool isDark) {
+    final bp = context.watch<BillProvider>();
+    final dateFormat = DateFormat('dd MMM yyyy, hh:mm a');
+
+    return SingleChildScrollView(
+      controller: _scrollController,
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 80),
+      child: Column(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.surfaceDark : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDark ? AppColors.borderDark : AppColors.borderLight,
               ),
-              child: const Icon(Icons.receipt_long_rounded, color: AppColors.primary, size: 48),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            const Text(
-              'No Bills Found',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              bp.searchQuery.isNotEmpty
-                  ? 'No invoices match "${bp.searchQuery}". Try changing search keywords or date range.'
-                  : 'No invoices found for the selected filters.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minWidth: 920),
+                  child: DataTable(
+                    headingRowHeight: 48,
+                    dataRowMinHeight: 56,
+                    dataRowMaxHeight: 64,
+                    headingRowColor: WidgetStateProperty.all(
+                      isDark ? AppColors.cardDark : const Color(0xFFF8FAFC),
+                    ),
+                    columns: const [
+                      DataColumn(label: Text('Bill No', style: TextStyle(fontWeight: FontWeight.bold))),
+                      DataColumn(label: Text('Date & Time', style: TextStyle(fontWeight: FontWeight.bold))),
+                      DataColumn(label: Text('Customer', style: TextStyle(fontWeight: FontWeight.bold))),
+                      DataColumn(label: Text('Items', style: TextStyle(fontWeight: FontWeight.bold))),
+                      DataColumn(label: Text('Subtotal', style: TextStyle(fontWeight: FontWeight.bold))),
+                      DataColumn(label: Text('Discount', style: TextStyle(fontWeight: FontWeight.bold))),
+                      DataColumn(label: Text('Grand Total', style: TextStyle(fontWeight: FontWeight.bold))),
+                      DataColumn(label: Text('Payment', style: TextStyle(fontWeight: FontWeight.bold))),
+                      DataColumn(label: Text('Actions', style: TextStyle(fontWeight: FontWeight.bold))),
+                    ],
+                    rows: bills.map((bill) {
+                      return DataRow(
+                        cells: [
+                          // Bill Number Badge
+                          DataCell(
+                            InkWell(
+                              onTap: () => _navigateToBillDetails(bill),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  bill.billNumber,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          // Date & Time
+                          DataCell(
+                            Text(
+                              dateFormat.format(bill.billDate),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                              ),
+                            ),
+                          ),
+                          // Customer Name & Mobile
+                          DataCell(
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  bill.displayCustomerName,
+                                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                                ),
+                                if (bill.customerMobileSnapshot != null && bill.customerMobileSnapshot!.isNotEmpty)
+                                  Text(
+                                    bill.customerMobileSnapshot!,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          // Items Count
+                          DataCell(
+                            Text(
+                              '${bill.items.length} ${bill.items.length == 1 ? "item" : "items"}',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ),
+                          // Subtotal
+                          DataCell(
+                            Text(
+                              '${AppConstants.currencySymbol}${bill.subtotal.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                              ),
+                            ),
+                          ),
+                          // Discount
+                          DataCell(
+                            bill.discount > 0
+                                ? Text(
+                                    '-${AppConstants.currencySymbol}${bill.discount.toStringAsFixed(2)}',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.error,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  )
+                                : const Text('-', style: TextStyle(color: Colors.grey)),
+                          ),
+                          // Grand Total
+                          DataCell(
+                            Text(
+                              '${AppConstants.currencySymbol}${bill.grandTotal.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                          // Payment Badge
+                          DataCell(_buildPaymentBadge(bill.paymentMethod, isDark)),
+                          // Actions
+                          DataCell(
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.visibility_outlined, size: 18),
+                                  tooltip: 'View Bill Details',
+                                  onPressed: () => _navigateToBillDetails(bill),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.print_outlined, size: 18, color: AppColors.secondary),
+                                  tooltip: 'Print Thermal Receipt',
+                                  onPressed: () => ReceiptService.showThermalReceipt(context, bill),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18, color: Color(0xFF25D366)),
+                                  tooltip: 'Share via WhatsApp',
+                                  onPressed: () => ReceiptService.showWhatsAppShareModal(context, bill),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    }).toList(),
+                  ),
+                ),
               ),
             ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.clear_all_rounded),
-              label: const Text('Reset All Filters'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () {
-                _searchController.clear();
-                bp.resetFilters();
-              },
+          ),
+          if (bp.hasMore)
+            Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: bp.isLoadingMore
+                  ? const CircularProgressIndicator()
+                  : TextButton.icon(
+                      icon: const Icon(Icons.arrow_downward_rounded, size: 16),
+                      label: const Text('Load More Invoices'),
+                      onPressed: () => bp.loadMoreBills(),
+                    ),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }

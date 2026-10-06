@@ -3,9 +3,13 @@ import 'package:provider/provider.dart';
 import '../../models/stock_item_model.dart';
 import '../../providers/stock_provider.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/common/app_empty_state.dart';
+import '../../widgets/common/app_loading_state.dart';
+import '../../widgets/common/app_snackbar.dart';
 
 class LowStockScreen extends StatefulWidget {
-  const LowStockScreen({super.key});
+  final bool isEmbedded;
+  const LowStockScreen({super.key, this.isEmbedded = false});
 
   @override
   State<LowStockScreen> createState() => _LowStockScreenState();
@@ -87,11 +91,9 @@ class _LowStockScreenState extends State<LowStockScreen> {
               );
 
               if (success && mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Restocked +$qty units for ${item.variantDisplayName}!'),
-                    backgroundColor: AppColors.success,
-                  ),
+                AppSnackbar.showSuccess(
+                  context,
+                  'Restocked +$qty units for ${item.variantDisplayName}!',
                 );
               }
             },
@@ -115,127 +117,89 @@ class _LowStockScreenState extends State<LowStockScreen> {
     final outOfStockCount = items.where((i) => i.status == StockStatus.outOfStock).length;
     final lowStockCount = items.where((i) => i.status == StockStatus.lowStock).length;
 
-    return Scaffold(
-      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
-      appBar: AppBar(
-        title: const Text(
-          'Low Stock Alerts',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Refresh',
-            onPressed: () => provider.loadLowStockItems(refresh: true),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Alert Banner Strip
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.surfaceDark : Colors.white,
-              border: Border(
-                bottom: BorderSide(
-                  color: isDark ? AppColors.borderDark : AppColors.borderLight,
-                ),
+    final content = Column(
+      children: [
+        // Alert Banner Strip
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.surfaceDark : Colors.white,
+            border: Border(
+              bottom: BorderSide(
+                color: isDark ? AppColors.borderDark : AppColors.borderLight,
               ),
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: AppColors.errorBg,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.remove_shopping_cart, size: 14, color: AppColors.error),
-                            const SizedBox(width: 6),
-                            Text(
-                              '$outOfStockCount Out of Stock',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.error,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: AppColors.warningBg,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.warning_amber_rounded, size: 14, color: AppColors.warning),
-                            const SizedBox(width: 6),
-                            Text(
-                              '$lowStockCount Low Stock',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.warning,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
           ),
-
-          // Items List
-          Expanded(
-            child: provider.isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : items.isEmpty
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(32),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(20),
-                                decoration: BoxDecoration(
-                                  color: AppColors.successBg,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(Icons.check_circle_outline, size: 56, color: AppColors.success),
-                              ),
-                              const SizedBox(height: 16),
-                              const Text(
-                                'All Stock Levels Healthy!',
-                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 6),
-                              const Text(
-                                'No items are currently below their reorder thresholds.',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: AppColors.textSecondaryLight, fontSize: 13),
-                              ),
-                            ],
+          child: Row(
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.errorBg,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.remove_shopping_cart, size: 14, color: AppColors.error),
+                          const SizedBox(width: 6),
+                          Text(
+                            '$outOfStockCount Out of Stock',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.error,
+                            ),
                           ),
-                        ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: () => provider.loadLowStockItems(refresh: true),
-                        child: ListView.separated(
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.warningBg,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.warning_amber_rounded, size: 14, color: AppColors.warning),
+                          const SizedBox(width: 6),
+                          Text(
+                            '$lowStockCount Low Stock',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.warning,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Items List
+        Expanded(
+          child: provider.isLoading
+              ? const AppLoadingState(message: 'Checking stock thresholds...')
+              : items.isEmpty
+                  ? AppEmptyState(
+                      icon: Icons.check_circle_outline_rounded,
+                      title: 'All Stock Levels Healthy!',
+                      description: 'No items are currently below their reorder thresholds.',
+                      actionLabel: 'Refresh',
+                      onAction: () => provider.loadLowStockItems(refresh: true),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: () => provider.loadLowStockItems(refresh: true),
+                      child: ListView.separated(
                           padding: const EdgeInsets.all(16),
                           itemCount: items.length,
                           separatorBuilder: (_, __) => const SizedBox(height: 10),
@@ -332,7 +296,29 @@ class _LowStockScreenState extends State<LowStockScreen> {
                       ),
           ),
         ],
+      );
+
+    if (widget.isEmbedded) {
+      return content;
+    }
+
+    return Scaffold(
+      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+      appBar: AppBar(
+        title: const Text(
+          'Low Stock Alerts',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded),
+            tooltip: 'Refresh',
+            onPressed: () => provider.loadLowStockItems(refresh: true),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
+      body: content,
     );
   }
 }

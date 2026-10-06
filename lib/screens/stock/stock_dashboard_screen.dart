@@ -11,7 +11,12 @@ import 'stock_history_screen.dart';
 import 'stock_in_screen.dart';
 
 class StockDashboardScreen extends StatefulWidget {
-  const StockDashboardScreen({super.key});
+  final bool isEmbedded;
+
+  const StockDashboardScreen({
+    super.key,
+    this.isEmbedded = false,
+  });
 
   @override
   State<StockDashboardScreen> createState() => _StockDashboardScreenState();
@@ -39,38 +44,13 @@ class _StockDashboardScreenState extends State<StockDashboardScreen> {
     final provider = context.watch<StockProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final size = MediaQuery.of(context).size;
-    final isDesktop = size.width > 900;
+    final isDesktop = size.width >= 900;
 
-    return Scaffold(
-      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
-      appBar: AppBar(
-        title: const Text(
-          'Stock Management',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Refresh Inventory',
-            onPressed: () => provider.loadStockDashboard(refresh: true),
-          ),
-          IconButton(
-            icon: const Icon(Icons.history_rounded),
-            tooltip: 'Stock Movement History',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const StockHistoryScreen()),
-              );
-            },
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(isDesktop ? 24 : 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    final body = SingleChildScrollView(
+      padding: EdgeInsets.all(isDesktop ? 24 : 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
             // KPI Summary Row
             LayoutBuilder(
               builder: (context, constraints) {
@@ -299,7 +279,41 @@ class _StockDashboardScreenState extends State<StockDashboardScreen> {
             ),
           ],
         ),
+      );
+
+    if (widget.isEmbedded) {
+      return Container(
+        color: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+        child: body,
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+      appBar: AppBar(
+        title: const Text(
+          'Stock Management',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded),
+            tooltip: 'Refresh Inventory',
+            onPressed: () => provider.loadStockDashboard(refresh: true),
+          ),
+          IconButton(
+            icon: const Icon(Icons.history_rounded),
+            tooltip: 'Stock Movement History',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const StockHistoryScreen()),
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
+      body: body,
     );
   }
 }
