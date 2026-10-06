@@ -1,4 +1,5 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import '../models/bill_filter_model.dart';
 import '../models/bill_item_model.dart';
 import '../models/bill_model.dart';
 import '../models/customer_model.dart';
@@ -18,7 +19,7 @@ class BillProvider extends ChangeNotifier {
     loadPreviewBillNumber();
   }
 
-  // State Variables
+  // POS State Variables
   List<BillItem> _cartItems = [];
   Customer? _selectedCustomer;
   DiscountType _discountType = DiscountType.fixed;
@@ -30,11 +31,22 @@ class BillProvider extends ChangeNotifier {
   String? _errorMessage;
   Bill? _lastCompletedBill;
 
-  // History State
+  // Bill History & Search State
   List<Bill> _billsHistory = [];
   bool _isHistoryLoading = false;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+  int _page = 0;
+  static const int _pageSize = 20;
+  int _totalCount = 0;
 
-  // Getters
+  // Search & Filter state
+  String _searchQuery = '';
+  BillDateFilterOption _activeDateFilter = BillDateFilterOption.all;
+  DateTimeRange? _customDateRange;
+  String _paymentFilter = 'All';
+
+  // Getters - POS
   List<BillItem> get cartItems => List.unmodifiable(_cartItems);
   Customer? get selectedCustomer => _selectedCustomer;
   DiscountType get discountType => _discountType;
@@ -45,8 +57,18 @@ class BillProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   Bill? get lastCompletedBill => _lastCompletedBill;
-  List<Bill> get billsHistory => _billsHistory;
+
+  // Getters - Bill Search & History
+  List<Bill> get billsHistory => List.unmodifiable(_billsHistory);
   bool get isHistoryLoading => _isHistoryLoading;
+  bool get isLoadingMore => _isLoadingMore;
+  bool get hasMore => _hasMore;
+  int get page => _page;
+  int get totalCount => _totalCount;
+  String get searchQuery => _searchQuery;
+  BillDateFilterOption get activeDateFilter => _activeDateFilter;
+  DateTimeRange? get customDateRange => _customDateRange;
+  String get paymentFilter => _paymentFilter;
 
   int get totalUniqueItems => _cartItems.length;
   int get totalQuantity => _cartItems.fold(0, (sum, item) => sum + item.quantity);
@@ -158,74 +180,44 @@ class BillProvider extends ChangeNotifier {
 
   void updateQuantity(String variantId, int newQuantity) {
     _errorMessage = null;
-    final index = _cartItems.indexWhere((item) => item.variantId == variantId);
-    if (index == -1) return;
 
-    final item = _cartItems[index];
+    final index = _cartItems.indexWhere((item) => item.variantId == variantId);
+    if (index < 0) return;
 
     if (newQuantity <= 0) {
-      _cartItems.removeAt(index);
-      notifyListeners();
+      removeItem(variantId);
       return;
     }
 
+    final item = _cartItems[index];
     if (newQuantity > item.availableStock) {
       _errorMessage =
-          'Stock limit reached. Only ${item.availableStock} available for ${item.productNameSnapshot} (${item.variantDescription}).';
+          'Cannot exceed available stock of ${item.availableStock} for "${item.productNameSnapshot}".';
       notifyListeners();
       return;
     }
 
-    final newTotal = (newQuantity * item.unitPrice) - item.discount;
+    final updatedTotal = (newQuantity * item.unitPrice) - item.discount;
     _cartItems[index] = item.copyWith(
       quantity: newQuantity,
-      total: newTotal > 0 ? newTotal : 0.0,
+      total: updatedTotal > 0 ? updatedTotal : 0.0,
     );
 
     notifyListeners();
   }
 
   void incrementQuantity(String variantId) {
-    final item = _cartItems.firstWhere(
-      (item) => item.variantId == variantId,
-      orElse: () => const BillItem(
-        variantId: '',
-        productNameSnapshot: '',
-        skuSnapshot: '',
-        sizeSnapshot: '',
-        colorSnapshot: '',
-        quantity: 0,
-        unitPrice: 0,
-        total: 0,
-      ),
-    );
-    if (item.variantId.isNotEmpty) {
-      updateQuantity(variantId, item.quantity + 1);
-    }
+    final item = _cartItems.firstWhere((i) => i.variantId == variantId, orElse: () => _cartItems.first);
+    updateQuantity(variantId, item.quantity + 1);
   }
 
   void decrementQuantity(String variantId) {
-    final item = _cartItems.firstWhere(
-      (item) => item.variantId == variantId,
-      orElse: () => const BillItem(
-        variantId: '',
-        productNameSnapshot: '',
-        skuSnapshot: '',
-        sizeSnapshot: '',
-        colorSnapshot: '',
-        quantity: 0,
-        unitPrice: 0,
-        total: 0,
-      ),
-    );
-    if (item.variantId.isNotEmpty) {
-      updateQuantity(variantId, item.quantity - 1);
-    }
+    final item = _cartItems.firstWhere((i) => i.variantId == variantId, orElse: () => _cartItems.first);
+    updateQuantity(variantId, item.quantity - 1);
   }
 
   void removeItem(String variantId) {
     _cartItems.removeWhere((item) => item.variantId == variantId);
-    _errorMessage = null;
     notifyListeners();
   }
 
@@ -236,49 +228,37 @@ class BillProvider extends ChangeNotifier {
     _notes = '';
     _selectedCustomer = null;
     _errorMessage = null;
-    loadPreviewBillNumber();
     notifyListeners();
   }
 
-  // Customer Management & Discount Memory in POS
-  /// When selecting an existing customer:
-  /// 1. Sets selected customer
-  /// 2. Automatically loads customer.last_discount as default fixed discount
+  void clearError() {
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  // Customer Management in POS
   void setCustomer(Customer? customer) {
     _selectedCustomer = customer;
-    _errorMessage = null;
-
-    if (customer != null) {
-      // Customer discount memory: Load customer's last discount as default
+    if (customer != null && customer.lastDiscount > 0) {
       _discountType = DiscountType.fixed;
       _discountValue = customer.lastDiscount;
-    } else {
-      _discountType = DiscountType.fixed;
-      _discountValue = 0.0;
     }
-
     notifyListeners();
   }
 
-  /// Sets discount mode (Fixed ₹ or Percentage %)
-  void setDiscountType(DiscountType type) {
-    if (_discountType != type) {
-      _discountType = type;
-      // If switching to percentage and value > 100, reset or clamp
-      if (_discountType == DiscountType.percentage && _discountValue > 100) {
-        _discountValue = 10.0;
-      }
-      notifyListeners();
-    }
+  void removeCustomer() {
+    _selectedCustomer = null;
+    notifyListeners();
   }
 
-  /// Sets discount value (amount in ₹ or percentage in %)
+  // Discount Management
+  void setDiscountType(DiscountType type) {
+    _discountType = type;
+    notifyListeners();
+  }
+
   void setDiscountValue(double value) {
-    if (value < 0) {
-      _discountValue = 0.0;
-    } else {
-      _discountValue = value;
-    }
+    _discountValue = value < 0 ? 0.0 : value;
     notifyListeners();
   }
 
@@ -289,11 +269,6 @@ class BillProvider extends ChangeNotifier {
 
   void setNotes(String notes) {
     _notes = notes;
-    notifyListeners();
-  }
-
-  void clearError() {
-    _errorMessage = null;
     notifyListeners();
   }
 
@@ -365,7 +340,138 @@ class BillProvider extends ChangeNotifier {
     }
   }
 
-  // Load Sales Bills History
+  // =========================================================
+  // SERVER-SIDE BILL SEARCH & PAGINATION
+  // =========================================================
+
+  /// Updates the active date filter and triggers server-side query
+  void setDateFilter(BillDateFilterOption option, {DateTimeRange? customRange}) {
+    _activeDateFilter = option;
+    _customDateRange = customRange;
+    fetchBills(refresh: true);
+  }
+
+  /// Updates the search query (bill number / customer name / customer mobile)
+  void setSearchQuery(String query) {
+    final trimmed = query.trim();
+    if (_searchQuery == trimmed) return;
+    _searchQuery = trimmed;
+    fetchBills(refresh: true);
+  }
+
+  /// Updates the payment method filter
+  void setPaymentFilter(String paymentMethod) {
+    if (_paymentFilter == paymentMethod) return;
+    _paymentFilter = paymentMethod;
+    fetchBills(refresh: true);
+  }
+
+  /// Clears all active filters and resets to default view
+  void resetFilters() {
+    _searchQuery = '';
+    _activeDateFilter = BillDateFilterOption.all;
+    _customDateRange = null;
+    _paymentFilter = 'All';
+    fetchBills(refresh: true);
+  }
+
+  /// Fetches paginated bills directly from Supabase server
+  Future<void> fetchBills({bool refresh = true}) async {
+    if (refresh) {
+      _page = 0;
+      _hasMore = true;
+      _isHistoryLoading = true;
+      _errorMessage = null;
+      notifyListeners();
+    }
+
+    try {
+      final range = BillFilterHelper.resolveDateRange(
+        _activeDateFilter,
+        customRange: _customDateRange,
+      );
+
+      final results = await _repository.getBills(
+        startDate: range?.start,
+        endDate: range?.end,
+        search: _searchQuery.isNotEmpty ? _searchQuery : null,
+        paymentMethod: _paymentFilter != 'All' ? _paymentFilter : null,
+        page: _page,
+        pageSize: _pageSize,
+      );
+
+      if (refresh) {
+        _billsHistory = results;
+      } else {
+        _billsHistory = [..._billsHistory, ...results];
+      }
+
+      _hasMore = results.length >= _pageSize;
+
+      // Count estimation
+      if (refresh) {
+        _totalCount = await _repository.getBillsCount(
+          startDate: range?.start,
+          endDate: range?.end,
+          search: _searchQuery.isNotEmpty ? _searchQuery : null,
+          paymentMethod: _paymentFilter != 'All' ? _paymentFilter : null,
+        );
+      }
+    } catch (e) {
+      _errorMessage = e.toString();
+    } finally {
+      _isHistoryLoading = false;
+      _isLoadingMore = false;
+      notifyListeners();
+    }
+  }
+
+  /// Loads the next page of bills from Supabase
+  Future<void> loadMoreBills() async {
+    if (!_hasMore || _isLoadingMore || _isHistoryLoading) return;
+
+    _isLoadingMore = true;
+    _page++;
+    notifyListeners();
+
+    try {
+      final range = BillFilterHelper.resolveDateRange(
+        _activeDateFilter,
+        customRange: _customDateRange,
+      );
+
+      final newBills = await _repository.getBills(
+        startDate: range?.start,
+        endDate: range?.end,
+        search: _searchQuery.isNotEmpty ? _searchQuery : null,
+        paymentMethod: _paymentFilter != 'All' ? _paymentFilter : null,
+        page: _page,
+        pageSize: _pageSize,
+      );
+
+      _billsHistory = [..._billsHistory, ...newBills];
+      _hasMore = newBills.length >= _pageSize;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _page--; // Revert page on failure
+    } finally {
+      _isLoadingMore = false;
+      notifyListeners();
+    }
+  }
+
+  /// Fetch full bill details with joined relations
+  Future<Bill?> fetchBillDetails(String billId) async {
+    try {
+      return await _repository.getBillById(billId);
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+      return null;
+    }
+  }
+
+  /// Backward-compatible loader for existing callers
   Future<void> loadBillsHistory({
     DateTime? startDate,
     DateTime? endDate,
@@ -381,6 +487,8 @@ class BillProvider extends ChangeNotifier {
         endDate: endDate,
         search: search,
         paymentMethod: paymentMethod,
+        page: 0,
+        pageSize: 50,
       );
     } catch (e) {
       _errorMessage = e.toString();

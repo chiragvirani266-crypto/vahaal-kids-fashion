@@ -10,7 +10,7 @@ import '../analytics/widgets/sales_line_chart_card.dart';
 import '../analytics/widgets/top_customers_card.dart';
 import '../analytics/widgets/top_selling_products_card.dart';
 import '../auth/login_screen.dart';
-import '../billing/bill_history_screen.dart';
+import '../billing/bill_list_screen.dart';
 import '../billing/billing_screen.dart';
 import '../customers/customer_list_screen.dart';
 import '../inventory/product_list_screen.dart';
@@ -372,7 +372,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   color: AppColors.primary,
                   onTap: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const BillHistoryScreen()),
+                      MaterialPageRoute(builder: (_) => const BillListScreen()),
                     );
                   },
                 ),
@@ -386,7 +386,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   color: const Color(0xFF0EA5E9),
                   onTap: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const BillHistoryScreen()),
+                      MaterialPageRoute(builder: (_) => const BillListScreen()),
                     );
                   },
                 ),
@@ -588,7 +588,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => const BillHistoryScreen(),
+                        builder: (_) => const BillListScreen(),
                       ),
                     );
                   },

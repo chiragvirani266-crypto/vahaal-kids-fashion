@@ -17,7 +17,16 @@ abstract class BillRepository {
     DateTime? endDate,
     String? search,
     String? paymentMethod,
+    int page = 0,
+    int pageSize = 20,
     int limit = 50,
+  });
+
+  Future<int> getBillsCount({
+    DateTime? startDate,
+    DateTime? endDate,
+    String? search,
+    String? paymentMethod,
   });
 
   Future<Bill> getBillById(String id);
@@ -109,6 +118,8 @@ class SupabaseBillRepository implements BillRepository {
     DateTime? endDate,
     String? search,
     String? paymentMethod,
+    int page = 0,
+    int pageSize = 20,
     int limit = 50,
   }) async {
     try {
@@ -116,6 +127,7 @@ class SupabaseBillRepository implements BillRepository {
           .from(SupabaseConstants.tableBills)
           .select('*, bill_items(*), profiles(full_name)');
 
+      // Server-side Date Filters
       if (startDate != null) {
         query = query.gte('bill_date', startDate.toIso8601String());
       }
@@ -124,25 +136,35 @@ class SupabaseBillRepository implements BillRepository {
         query = query.lte('bill_date', endDate.toIso8601String());
       }
 
-      if (paymentMethod != null && paymentMethod.isNotEmpty && paymentMethod != 'All') {
+      // Server-side Payment Method Filter
+      if (paymentMethod != null &&
+          paymentMethod.isNotEmpty &&
+          paymentMethod.toLowerCase() != 'all') {
         query = query.eq('payment_method', paymentMethod.toLowerCase());
       }
 
-      final data = await query.order('bill_date', ascending: false).limit(limit);
+      // Server-side Multi-Field Search (Bill Number, Customer Name, Mobile)
+      if (search != null && search.trim().isNotEmpty) {
+        final sanitized = search.trim().replaceAll(RegExp(r'[,()]'), '');
+        if (sanitized.isNotEmpty) {
+          query = query.or(
+            'bill_number.ilike.%$sanitized%,customer_name_snapshot.ilike.%$sanitized%,customer_mobile_snapshot.ilike.%$sanitized%',
+          );
+        }
+      }
 
-      List<Bill> list = (data as List)
+      // Server-side Range Pagination
+      final effectivePageSize = pageSize > 0 ? pageSize : limit;
+      final from = page * effectivePageSize;
+      final to = from + effectivePageSize - 1;
+
+      final data = await query
+          .order('bill_date', ascending: false)
+          .range(from, to);
+
+      final list = (data as List)
           .map((row) => Bill.fromJson(row as Map<String, dynamic>))
           .toList();
-
-      if (search != null && search.trim().isNotEmpty) {
-        final q = search.trim().toLowerCase();
-        list = list.where((b) {
-          final matchesNumber = b.billNumber.toLowerCase().contains(q);
-          final matchesCust = b.customerNameSnapshot?.toLowerCase().contains(q) ?? false;
-          final matchesMobile = b.customerMobileSnapshot?.contains(q) ?? false;
-          return matchesNumber || matchesCust || matchesMobile;
-        }).toList();
-      }
 
       return list;
     } on SocketException {
@@ -152,6 +174,48 @@ class SupabaseBillRepository implements BillRepository {
     } catch (e) {
       if (e is AppException) rethrow;
       throw AppException('Failed to load bills: $e');
+    }
+  }
+
+  @override
+  Future<int> getBillsCount({
+    DateTime? startDate,
+    DateTime? endDate,
+    String? search,
+    String? paymentMethod,
+  }) async {
+    try {
+      var query = _supabase
+          .from(SupabaseConstants.tableBills)
+          .select('id');
+
+      if (startDate != null) {
+        query = query.gte('bill_date', startDate.toIso8601String());
+      }
+
+      if (endDate != null) {
+        query = query.lte('bill_date', endDate.toIso8601String());
+      }
+
+      if (paymentMethod != null &&
+          paymentMethod.isNotEmpty &&
+          paymentMethod.toLowerCase() != 'all') {
+        query = query.eq('payment_method', paymentMethod.toLowerCase());
+      }
+
+      if (search != null && search.trim().isNotEmpty) {
+        final sanitized = search.trim().replaceAll(RegExp(r'[,()]'), '');
+        if (sanitized.isNotEmpty) {
+          query = query.or(
+            'bill_number.ilike.%$sanitized%,customer_name_snapshot.ilike.%$sanitized%,customer_mobile_snapshot.ilike.%$sanitized%',
+          );
+        }
+      }
+
+      final res = await query.count(CountOption.exact);
+      return res.count;
+    } catch (_) {
+      return 0;
     }
   }
 

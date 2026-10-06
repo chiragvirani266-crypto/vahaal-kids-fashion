@@ -6,6 +6,7 @@ import '../../core/constants/app_constants.dart';
 import '../../models/customer_purchase_bill_model.dart';
 import '../../providers/customer_provider.dart';
 import '../../theme/app_colors.dart';
+import '../billing/bill_details_screen.dart';
 import 'edit_customer_screen.dart';
 
 class CustomerDetailsScreen extends StatefulWidget {
@@ -345,18 +346,27 @@ class _BillHistoryCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final dateFormatted = DateFormat('dd MMM yyyy, hh:mm a').format(bill.billDate);
 
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : AppColors.cardLight,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isDark ? AppColors.borderDark : AppColors.borderLight,
+    return InkWell(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => BillDetailsScreen(billId: bill.id),
+          ),
+        );
+      },
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.cardDark : AppColors.cardLight,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isDark ? AppColors.borderDark : AppColors.borderLight,
+          ),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           Row(
             children: [
               Container(
@@ -439,6 +449,7 @@ class _BillHistoryCard extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
