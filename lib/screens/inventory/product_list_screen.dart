@@ -6,6 +6,7 @@ import '../../providers/product_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/common/app_text_field.dart';
 import 'add_product_screen.dart';
+import 'label_print_screen.dart';
 import 'product_details_screen.dart';
 
 class ProductListScreen extends StatefulWidget {
@@ -47,6 +48,15 @@ class _ProductListScreenState extends State<ProductListScreen> {
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.qr_code_2_rounded),
+            tooltip: 'Print Barcode Labels',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const LabelPrintScreen()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             tooltip: 'Refresh',

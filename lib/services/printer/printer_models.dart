@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import '../../models/product_model.dart';
+import '../../models/product_variant_model.dart';
 
 /// Supported receipt paper widths
 enum ReceiptPaperWidth {
@@ -111,25 +113,166 @@ class PrinterConfig {
   }
 }
 
+/// Presets for barcode sticker and garment price tag sizes
+enum LabelSizePreset {
+  standard50x25(50.0, 25.0, '50mm × 25mm (Standard 2"×1")', 'Most common garment adhesive sticker'),
+  compact38x25(38.0, 25.0, '38mm × 25mm (Compact 1.5"×1")', 'Accessories, jewelry & small items'),
+  large50x38(50.0, 38.0, '50mm × 38mm (Large 2"×1.5")', 'Detailed garment hang tag with size & care'),
+  roll58mm(58.0, 35.0, '58mm Continuous Roll', 'Standard 2-inch thermal roll printer'),
+  roll80mm(80.0, 45.0, '80mm Continuous Roll', 'Standard 3-inch POS thermal printer'),
+  custom(50.0, 25.0, 'Custom Dimensions', 'User-defined width & height in mm');
+
+  final double defaultWidthMm;
+  final double defaultHeightMm;
+  final String label;
+  final String description;
+
+  const LabelSizePreset(
+    this.defaultWidthMm,
+    this.defaultHeightMm,
+    this.label,
+    this.description,
+  );
+}
+
 /// Configuration for barcode / price tag sticker printing
 class LabelConfig {
+  final LabelSizePreset preset;
   final double widthMm;
   final double heightMm;
   final bool showStoreName;
+  final bool showProductName;
   final bool showBarcode;
   final bool showPrice;
   final bool showSizeAndColor;
+  final bool showSku;
+  final String? storeNameOverride;
+  final String currencySymbol;
   final int copies;
 
   const LabelConfig({
+    this.preset = LabelSizePreset.standard50x25,
     this.widthMm = 50.0,
     this.heightMm = 25.0,
     this.showStoreName = true,
+    this.showProductName = true,
     this.showBarcode = true,
     this.showPrice = true,
     this.showSizeAndColor = true,
+    this.showSku = true,
+    this.storeNameOverride,
+    this.currencySymbol = 'Rs.',
     this.copies = 1,
   });
+
+  LabelConfig copyWith({
+    LabelSizePreset? preset,
+    double? widthMm,
+    double? heightMm,
+    bool? showStoreName,
+    bool? showProductName,
+    bool? showBarcode,
+    bool? showPrice,
+    bool? showSizeAndColor,
+    bool? showSku,
+    String? storeNameOverride,
+    String? currencySymbol,
+    int? copies,
+  }) {
+    return LabelConfig(
+      preset: preset ?? this.preset,
+      widthMm: widthMm ?? this.widthMm,
+      heightMm: heightMm ?? this.heightMm,
+      showStoreName: showStoreName ?? this.showStoreName,
+      showProductName: showProductName ?? this.showProductName,
+      showBarcode: showBarcode ?? this.showBarcode,
+      showPrice: showPrice ?? this.showPrice,
+      showSizeAndColor: showSizeAndColor ?? this.showSizeAndColor,
+      showSku: showSku ?? this.showSku,
+      storeNameOverride: storeNameOverride ?? this.storeNameOverride,
+      currencySymbol: currencySymbol ?? this.currencySymbol,
+      copies: copies ?? this.copies,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'preset': preset.name,
+        'width_mm': widthMm,
+        'height_mm': heightMm,
+        'show_store_name': showStoreName,
+        'show_product_name': showProductName,
+        'show_barcode': showBarcode,
+        'show_price': showPrice,
+        'show_size_and_color': showSizeAndColor,
+        'show_sku': showSku,
+        'store_name_override': storeNameOverride,
+        'currency_symbol': currencySymbol,
+        'copies': copies,
+      };
+
+  factory LabelConfig.fromJson(Map<String, dynamic> json) {
+    final presetName = json['preset'] as String?;
+    final preset = LabelSizePreset.values.firstWhere(
+      (e) => e.name == presetName,
+      orElse: () => LabelSizePreset.standard50x25,
+    );
+
+    return LabelConfig(
+      preset: preset,
+      widthMm: (json['width_mm'] as num?)?.toDouble() ?? preset.defaultWidthMm,
+      heightMm: (json['height_mm'] as num?)?.toDouble() ?? preset.defaultHeightMm,
+      showStoreName: json['show_store_name'] as bool? ?? true,
+      showProductName: json['show_product_name'] as bool? ?? true,
+      showBarcode: json['show_barcode'] as bool? ?? true,
+      showPrice: json['show_price'] as bool? ?? true,
+      showSizeAndColor: json['show_size_and_color'] as bool? ?? true,
+      showSku: json['show_sku'] as bool? ?? true,
+      storeNameOverride: json['store_name_override'] as String?,
+      currencySymbol: json['currency_symbol'] as String? ?? 'Rs.',
+      copies: (json['copies'] as num?)?.toInt() ?? 1,
+    );
+  }
+}
+
+/// Model representing a variant and parent product selected for label printing
+class LabelPrintItem {
+  final ProductVariant variant;
+  final Product product;
+  final int quantity;
+  final bool isSelected;
+
+  const LabelPrintItem({
+    required this.variant,
+    required this.product,
+    this.quantity = 1,
+    this.isSelected = true,
+  });
+
+  LabelPrintItem copyWith({
+    ProductVariant? variant,
+    Product? product,
+    int? quantity,
+    bool? isSelected,
+  }) {
+    return LabelPrintItem(
+      variant: variant ?? this.variant,
+      product: product ?? this.product,
+      quantity: quantity ?? this.quantity,
+      isSelected: isSelected ?? this.isSelected,
+    );
+  }
+
+  /// Safe display barcode
+  String get effectiveBarcode {
+    if (variant.barcode.isNotEmpty) return variant.barcode;
+    if (product.barcode != null && product.barcode!.isNotEmpty) return product.barcode!;
+    return variant.sku.isNotEmpty ? variant.sku : product.sku;
+  }
+
+  /// Safe display price
+  double get effectivePrice {
+    return variant.sellingPrice ?? product.sellingPrice;
+  }
 }
 
 /// Outcome of a print request

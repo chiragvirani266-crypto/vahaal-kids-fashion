@@ -213,7 +213,7 @@ class BillSuccessModal extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () => ReceiptService.shareOnWhatsApp(context, bill),
+                    onPressed: () => ReceiptService.showWhatsAppShareModal(context, bill),
                     icon: const Icon(Icons.chat_rounded, size: 18),
                     label: const Text('WhatsApp'),
                     style: ElevatedButton.styleFrom(

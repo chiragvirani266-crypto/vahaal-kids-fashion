@@ -139,7 +139,7 @@ class _BillDetailsScreenState extends State<BillDetailsScreen> {
           IconButton(
             tooltip: 'Share on WhatsApp',
             icon: const Icon(Icons.share_rounded, size: 20),
-            onPressed: () => ReceiptService.shareOnWhatsApp(context, bill),
+            onPressed: () => ReceiptService.showWhatsAppShareModal(context, bill),
           ),
           IconButton(
             tooltip: 'Print Thermal Receipt',
@@ -705,7 +705,7 @@ class _BillDetailsScreenState extends State<BillDetailsScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                onPressed: () => ReceiptService.shareOnWhatsApp(context, bill),
+                onPressed: () => ReceiptService.showWhatsAppShareModal(context, bill),
               ),
             ),
             const SizedBox(width: 8),

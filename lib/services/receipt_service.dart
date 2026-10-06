@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../core/constants/app_constants.dart';
 import '../models/bill_model.dart';
 import '../models/product_model.dart';
@@ -9,6 +8,7 @@ import '../models/product_variant_model.dart';
 import '../theme/app_colors.dart';
 import 'printer/printer_models.dart';
 import 'printer/printer_service_factory.dart';
+import 'whatsapp/whatsapp_service.dart';
 
 class ReceiptService {
   /// Formats the bill into clean text for WhatsApp, clipboard, or SMS sharing
@@ -62,48 +62,31 @@ class ReceiptService {
     return buffer.toString();
   }
 
-  /// Direct WhatsApp share with customer phone number prefilled
+  /// Direct WhatsApp share delegating to WhatsAppService
   static Future<void> shareOnWhatsApp(
     BuildContext context,
     Bill bill, {
     bool isReprint = false,
+    bool attachPdf = false,
   }) async {
-    final mobile = bill.customerMobileSnapshot?.replaceAll(RegExp(r'[^\d]'), '') ?? '';
-    final messageText = formatBillText(bill, isReprint: isReprint);
-    final encodedMessage = Uri.encodeComponent(messageText);
+    await WhatsAppServiceFactory.getInstance().shareBill(
+      context: context,
+      bill: bill,
+      attachPdf: attachPdf,
+    );
+  }
 
-    String urlStr;
-    if (mobile.isNotEmpty) {
-      final formattedMobile = mobile.length == 10 ? '91$mobile' : mobile;
-      urlStr = 'https://wa.me/$formattedMobile?text=$encodedMessage';
-    } else {
-      urlStr = 'https://api.whatsapp.com/send?text=$encodedMessage';
-    }
-
-    final uri = Uri.parse(urlStr);
-    try {
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              backgroundColor: AppColors.error,
-              content: Text('Could not open WhatsApp on this device.'),
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: AppColors.error,
-            content: Text('Error launching WhatsApp: $e'),
-          ),
-        );
-      }
-    }
+  /// Displays the interactive WhatsApp / PDF share modal dialog
+  static void showWhatsAppShareModal(
+    BuildContext context,
+    Bill bill, {
+    VoidCallback? onShareCompleted,
+  }) {
+    WhatsAppServiceFactory.getInstance().showShareModal(
+      context,
+      bill,
+      onShareCompleted: onShareCompleted,
+    );
   }
 
   /// Copies bill text to clipboard

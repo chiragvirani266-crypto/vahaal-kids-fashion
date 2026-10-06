@@ -13,6 +13,7 @@ import '../auth/login_screen.dart';
 import '../billing/bill_list_screen.dart';
 import '../billing/billing_screen.dart';
 import '../customers/customer_list_screen.dart';
+import '../inventory/label_print_screen.dart';
 import '../inventory/product_list_screen.dart';
 import '../stock/low_stock_screen.dart';
 import '../stock/stock_dashboard_screen.dart';
@@ -640,7 +641,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => const ProductListScreen(),
+                        builder: (_) => const LabelPrintScreen(),
                       ),
                     );
                   },

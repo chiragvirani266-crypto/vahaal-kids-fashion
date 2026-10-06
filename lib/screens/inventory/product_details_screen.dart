@@ -4,9 +4,9 @@ import '../../core/constants/app_constants.dart';
 import '../../models/product_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/product_provider.dart';
-import '../../services/receipt_service.dart';
 import '../../theme/app_colors.dart';
 import 'edit_product_screen.dart';
+import 'label_print_screen.dart';
 
 class ProductDetailsScreen extends StatefulWidget {
   final String productId;
@@ -116,6 +116,17 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.qr_code_2_rounded),
+            tooltip: 'Print Barcode Labels',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => LabelPrintScreen(initialProduct: product),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.edit_outlined),
             tooltip: 'Edit Product',
@@ -443,11 +454,16 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                         IconButton(
                           tooltip: 'Print Barcode Sticker',
                           icon: const Icon(Icons.qr_code_2_rounded, size: 20, color: AppColors.primary),
-                          onPressed: () => ReceiptService.showLabelPrint(
-                            context,
-                            v,
-                            product: product,
-                          ),
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => LabelPrintScreen(
+                                  initialProduct: product,
+                                  initialVariant: v,
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),

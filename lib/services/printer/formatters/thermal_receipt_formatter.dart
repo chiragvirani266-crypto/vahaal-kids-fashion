@@ -271,7 +271,7 @@ class ThermalReceiptFormatter {
     LabelConfig config = const LabelConfig(),
   }) {
     final buffer = StringBuffer();
-    final cols = 32;
+    final cols = config.preset == LabelSizePreset.roll80mm ? 48 : 32;
 
     String center(String s) {
       if (s.length >= cols) return s.substring(0, cols);
@@ -281,19 +281,30 @@ class ThermalReceiptFormatter {
     }
 
     if (config.showStoreName) {
-      buffer.writeln(center(AppConstants.storeName));
+      final store = config.storeNameOverride?.isNotEmpty == true
+          ? config.storeNameOverride!
+          : AppConstants.storeName;
+      buffer.writeln(center(store));
       buffer.writeln('-' * cols);
     }
 
-    final productName = product?.productName ?? 'Kidswear Apparel';
-    buffer.writeln(center(productName));
-    buffer.writeln(center('Size: ${variant.size}  |  Color: ${variant.color}'));
-
-    if (variant.sku.isNotEmpty) {
-      buffer.writeln(center('SKU: ${variant.sku}'));
+    if (config.showProductName) {
+      final productName = product?.productName ?? 'Kidswear Apparel';
+      buffer.writeln(center(productName));
     }
 
-    final barcode = variant.barcode.isNotEmpty ? variant.barcode : (product?.barcode ?? '');
+    if (config.showSizeAndColor) {
+      buffer.writeln(center('Size: ${variant.size}  |  Color: ${variant.color}'));
+    }
+
+    if (config.showSku) {
+      final sku = variant.sku.isNotEmpty ? variant.sku : (product?.sku ?? '');
+      if (sku.isNotEmpty) {
+        buffer.writeln(center('SKU: $sku'));
+      }
+    }
+
+    final barcode = variant.barcode.isNotEmpty ? variant.barcode : (product?.barcode ?? variant.sku);
     if (config.showBarcode && barcode.isNotEmpty) {
       buffer.writeln(center('||| |||| ||||| |||| |||'));
       buffer.writeln(center(barcode));
@@ -301,8 +312,36 @@ class ThermalReceiptFormatter {
 
     final price = variant.sellingPrice ?? product?.sellingPrice ?? 0.0;
     if (config.showPrice && price > 0) {
-      buffer.writeln(center('MRP: Rs. ${price.toStringAsFixed(2)}'));
+      buffer.writeln(center('MRP: ${config.currencySymbol} ${price.toStringAsFixed(2)}'));
       buffer.writeln(center('(Incl. of all taxes)'));
+    }
+
+    return buffer.toString();
+  }
+
+  /// Formats multiple copies of labels into a single monospaced preview
+  static String formatBatchLabelsText(
+    List<LabelPrintItem> items, {
+    LabelConfig config = const LabelConfig(),
+  }) {
+    final buffer = StringBuffer();
+    final selectedItems = items.where((i) => i.isSelected && i.quantity > 0).toList();
+
+    if (selectedItems.isEmpty) {
+      return 'No labels selected for preview.';
+    }
+
+    for (int idx = 0; idx < selectedItems.length; idx++) {
+      final item = selectedItems[idx];
+      buffer.writeln('=== BATCH ITEM ${idx + 1}/${selectedItems.length} (Qty: ${item.quantity}) ===');
+      buffer.writeln(formatVariantLabelText(
+        item.variant,
+        product: item.product,
+        config: config,
+      ));
+      if (idx < selectedItems.length - 1) {
+        buffer.writeln('\n${'*' * 32}\n');
+      }
     }
 
     return buffer.toString();
@@ -314,30 +353,50 @@ class ThermalReceiptFormatter {
     Product? product,
     LabelConfig config = const LabelConfig(),
   }) {
-    final builder = EscPosBuilder(paperWidth: ReceiptPaperWidth.mm58);
+    final paperWidth = config.preset == LabelSizePreset.roll80mm
+        ? ReceiptPaperWidth.mm80
+        : ReceiptPaperWidth.mm58;
+
+    final builder = EscPosBuilder(paperWidth: paperWidth);
     builder.initialize();
 
     if (config.showStoreName) {
-      builder.textLine(AppConstants.storeName, align: 1, bold: true);
+      final store = config.storeNameOverride?.isNotEmpty == true
+          ? config.storeNameOverride!
+          : AppConstants.storeName;
+      builder.textLine(store, align: 1, bold: true);
       builder.divider();
     }
 
-    final productName = product?.productName ?? 'Kidswear Item';
-    builder.textLine(productName, align: 1, bold: true);
-    builder.textLine('Size: ${variant.size}  |  Color: ${variant.color}', align: 1);
-
-    if (variant.sku.isNotEmpty) {
-      builder.textLine('SKU: ${variant.sku}', align: 1);
+    if (config.showProductName) {
+      final productName = product?.productName ?? 'Kidswear Item';
+      builder.textLine(productName, align: 1, bold: true);
     }
 
-    final barcode = variant.barcode.isNotEmpty ? variant.barcode : (product?.barcode ?? '');
+    if (config.showSizeAndColor) {
+      builder.textLine('Size: ${variant.size}  |  Color: ${variant.color}', align: 1);
+    }
+
+    if (config.showSku) {
+      final sku = variant.sku.isNotEmpty ? variant.sku : (product?.sku ?? '');
+      if (sku.isNotEmpty) {
+        builder.textLine('SKU: $sku', align: 1);
+      }
+    }
+
+    final barcode = variant.barcode.isNotEmpty ? variant.barcode : (product?.barcode ?? variant.sku);
     if (config.showBarcode && barcode.isNotEmpty) {
       builder.printBarcode(barcode, height: 50, width: 2);
     }
 
     final price = variant.sellingPrice ?? product?.sellingPrice ?? 0.0;
     if (config.showPrice && price > 0) {
-      builder.textLine('MRP: Rs. ${price.toStringAsFixed(2)}', align: 1, bold: true, doubleHeight: true);
+      builder.textLine(
+        'MRP: ${config.currencySymbol} ${price.toStringAsFixed(2)}',
+        align: 1,
+        bold: true,
+        doubleHeight: true,
+      );
       builder.textLine('(Incl. of all taxes)', align: 1);
     }
 
@@ -345,5 +404,49 @@ class ThermalReceiptFormatter {
     builder.cut(partial: true);
 
     return builder.build();
+  }
+
+  /// Generates ESC/POS bytes for multiple copies of a single variant
+  static Uint8List formatMultipleVariantLabelsEscPos(
+    ProductVariant variant, {
+    Product? product,
+    int copies = 1,
+    LabelConfig config = const LabelConfig(),
+  }) {
+    final effectiveCopies = copies <= 0 ? 1 : copies;
+    final List<int> combinedBytes = [];
+
+    for (int i = 0; i < effectiveCopies; i++) {
+      final labelBytes = formatVariantLabelEscPos(
+        variant,
+        product: product,
+        config: config,
+      );
+      combinedBytes.addAll(labelBytes);
+    }
+
+    return Uint8List.fromList(combinedBytes);
+  }
+
+  /// Generates ESC/POS bytes for a batch of multiple selected variants
+  static Uint8List formatBatchLabelsEscPos(
+    List<LabelPrintItem> items, {
+    LabelConfig config = const LabelConfig(),
+  }) {
+    final List<int> combinedBytes = [];
+    final selectedItems = items.where((i) => i.isSelected && i.quantity > 0);
+
+    for (final item in selectedItems) {
+      for (int c = 0; c < item.quantity; c++) {
+        final labelBytes = formatVariantLabelEscPos(
+          item.variant,
+          product: item.product,
+          config: config,
+        );
+        combinedBytes.addAll(labelBytes);
+      }
+    }
+
+    return Uint8List.fromList(combinedBytes);
   }
 }
