@@ -6,6 +6,8 @@ import '../../providers/product_provider.dart';
 import '../../theme/app_colors.dart';
 import '../auth/login_screen.dart';
 import '../inventory/product_list_screen.dart';
+import '../stock/low_stock_screen.dart';
+import '../stock/stock_dashboard_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -330,6 +332,13 @@ class DashboardScreen extends StatelessWidget {
                       subtitle: "Requires restock",
                       icon: Icons.warning_amber_rounded,
                       color: AppColors.warning,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const LowStockScreen(),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 );
@@ -391,10 +400,23 @@ class DashboardScreen extends StatelessWidget {
                   },
                 ),
                 _ModuleCard(
+                  title: 'Stock & Inventory',
+                  description: 'Stock in, adjustments, audits & movement ledger',
+                  icon: Icons.warehouse_rounded,
+                  color: AppColors.tertiary,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const StockDashboardScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _ModuleCard(
                   title: 'Sales & Bills History',
                   description: 'Search invoices, WhatsApp share & reprints',
                   icon: Icons.history_rounded,
-                  color: AppColors.tertiary,
+                  color: const Color(0xFF0EA5E9),
                   onTap: () {},
                 ),
                 _ModuleCard(
@@ -416,7 +438,7 @@ class DashboardScreen extends StatelessWidget {
                     title: 'Barcode Label Printing',
                     description: 'Generate price tags for new arrivals',
                     icon: Icons.qr_code_2_rounded,
-                    color: const Color(0xFF0EA5E9),
+                    color: const Color(0xFF10B981),
                     onTap: () {},
                   ),
                 ],
@@ -435,6 +457,7 @@ class _KpiCard extends StatelessWidget {
   final String subtitle;
   final IconData icon;
   final Color color;
+  final VoidCallback? onTap;
 
   const _KpiCard({
     required this.title,
@@ -442,65 +465,72 @@ class _KpiCard extends StatelessWidget {
     required this.subtitle,
     required this.icon,
     required this.color,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.cardDark : AppColors.cardLight,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isDark ? AppColors.borderDark : AppColors.borderLight,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.cardDark : AppColors.cardLight,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isDark ? AppColors.borderDark : AppColors.borderLight,
+          ),
         ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: color.withAlpha(25),
-              borderRadius: BorderRadius.circular(12),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withAlpha(25),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 24),
             ),
-            child: Icon(icon, color: color, size: 24),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimaryLight,
+                  const SizedBox(height: 4),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimaryLight,
+                    ),
                   ),
-                ),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+            if (onTap != null)
+              const Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.textMutedLight),
+          ],
+        ),
       ),
     );
   }

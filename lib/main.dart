@@ -5,7 +5,9 @@ import 'core/constants/app_constants.dart';
 import 'core/constants/supabase_constants.dart';
 import 'providers/auth_provider.dart';
 import 'providers/product_provider.dart';
+import 'providers/stock_provider.dart';
 import 'repositories/product_repository.dart';
+import 'repositories/stock_repository.dart';
 import 'screens/splash/splash_screen.dart';
 import 'services/auth_service.dart';
 import 'theme/app_theme.dart';
@@ -50,6 +52,15 @@ class VahaalKidsFashionApp extends StatelessWidget {
         ChangeNotifierProvider<ProductProvider>(
           create: (context) => ProductProvider(
             repository: context.read<ProductRepository>(),
+          ),
+        ),
+        // StockRepository & StockProvider injection
+        Provider<StockRepository>(
+          create: (_) => SupabaseStockRepository(),
+        ),
+        ChangeNotifierProvider<StockProvider>(
+          create: (context) => StockProvider(
+            repository: context.read<StockRepository>(),
           ),
         ),
       ],
