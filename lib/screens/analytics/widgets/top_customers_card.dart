@@ -27,16 +27,23 @@ class TopCustomersCard extends StatelessWidget {
           const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Icon(Icons.workspace_premium_rounded, color: AppColors.secondary, size: 22),
-                  SizedBox(width: 8),
-                  Text(
-                    'Top VIP Customers',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ],
+              Flexible(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.workspace_premium_rounded, color: AppColors.secondary, size: 22),
+                    SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'Top VIP Customers',
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              SizedBox(width: 8),
               Text(
                 'By Lifetime Spend',
                 style: TextStyle(fontSize: 11, color: AppColors.textMutedLight),

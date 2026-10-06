@@ -66,36 +66,44 @@ class SalesLineChartCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Row: Title, Totals & Grouping / Date Filter
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
+          // Responsive Header: Title, Totals & Grouping / Date Filter
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isCompact = constraints.maxWidth < 620;
+
+              final titleSection = Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Row(
                     children: [
                       Icon(Icons.show_chart_rounded, color: AppColors.primary, size: 22),
                       SizedBox(width: 8),
-                      Text(
-                        'Sales & Revenue Trend',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      Flexible(
+                        child: Text(
+                          'Sales & Revenue Trend',
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 2),
                   Text(
                     'Revenue: ₹${provider.totalChartSales.toStringAsFixed(2)} • ${provider.totalChartBills} Bills ($rangeText)',
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
                     style: TextStyle(
                       fontSize: 12,
                       color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                     ),
                   ),
                 ],
-              ),
+              );
 
-              // Grouping Segmented Switcher (Daily, Monthly, Yearly)
-              Row(
+              final controlsSection = Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Container(
                     height: 32,
@@ -107,6 +115,7 @@ class SalesLineChartCard extends StatelessWidget {
                       ),
                     ),
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         _buildGroupingButton(context, SalesChartGrouping.daily, 'Daily'),
                         _buildGroupingButton(context, SalesChartGrouping.monthly, 'Monthly'),
@@ -114,17 +123,35 @@ class SalesLineChartCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  if (enableDateRangePicker) ...[
-                    const SizedBox(width: 8),
+                  if (enableDateRangePicker)
                     IconButton(
                       tooltip: 'Select Custom Date Range',
                       icon: const Icon(Icons.date_range_rounded, size: 20, color: AppColors.primary),
                       onPressed: () => _selectCustomDateRange(context),
                     ),
-                  ],
                 ],
-              ),
-            ],
+              );
+
+              if (isCompact) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    titleSection,
+                    const SizedBox(height: 12),
+                    controlsSection,
+                  ],
+                );
+              }
+
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(child: titleSection),
+                  const SizedBox(width: 12),
+                  controlsSection,
+                ],
+              );
+            },
           ),
           const Divider(height: 24),
 
@@ -161,41 +188,46 @@ class SalesLineChartCard extends StatelessWidget {
           const SizedBox(height: 8),
 
           // Chart Legend
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 12,
-                    height: 12,
-                    decoration: const BoxDecoration(
-                      color: AppColors.primary,
-                      shape: BoxShape.circle,
+          Center(
+            child: Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 20,
+              runSpacing: 8,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: const BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                  const Text('Sales Revenue (₹)',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
-                ],
-              ),
-              const SizedBox(width: 20),
-              Row(
-                children: [
-                  Container(
-                    width: 12,
-                    height: 12,
-                    decoration: const BoxDecoration(
-                      color: AppColors.secondary,
-                      shape: BoxShape.circle,
+                    const SizedBox(width: 6),
+                    const Text('Sales Revenue (₹)',
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                  ],
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: const BoxDecoration(
+                        color: AppColors.secondary,
+                        shape: BoxShape.circle,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                  const Text('Bills Count',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
-                ],
-              ),
-            ],
+                    const SizedBox(width: 6),
+                    const Text('Bills Count',
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              ],
+            ),
           ),
         ],
       ),

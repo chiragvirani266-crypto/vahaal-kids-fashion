@@ -29,16 +29,23 @@ class TopSellingProductsCard extends StatelessWidget {
           const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Icon(Icons.star_rounded, color: AppColors.accent, size: 22),
-                  SizedBox(width: 8),
-                  Text(
-                    'Top Selling Products',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ],
+              Flexible(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.star_rounded, color: AppColors.accent, size: 22),
+                    SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'Top Selling Products',
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              SizedBox(width: 8),
               Text(
                 'By Volume & Revenue',
                 style: TextStyle(fontSize: 11, color: AppColors.textMutedLight),
