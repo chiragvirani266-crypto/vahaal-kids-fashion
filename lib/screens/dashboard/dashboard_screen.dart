@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/routes/app_navigator.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/bill_provider.dart';
 import '../../providers/dashboard_provider.dart';
@@ -14,13 +15,12 @@ import '../analytics/sales_analytics_screen.dart';
 import '../analytics/widgets/sales_line_chart_card.dart';
 import '../analytics/widgets/top_customers_card.dart';
 import '../analytics/widgets/top_selling_products_card.dart';
-import '../auth/login_screen.dart';
 import '../billing/bill_list_screen.dart';
 import '../billing/billing_screen.dart';
 import '../customers/customer_list_screen.dart';
 import '../inventory/label_print_screen.dart';
 import '../inventory/product_list_screen.dart';
-import '../stock/low_stock_screen.dart';
+import '../settings/settings_screen.dart';
 import '../stock/stock_dashboard_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -44,7 +44,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Future<void> _handleLogout(BuildContext context) async {
     final authProvider = context.read<AuthProvider>();
-    final navigator = Navigator.of(context);
     final confirmed = await AppConfirmDialog.show(
       context,
       title: 'Sign Out',
@@ -57,10 +56,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (confirmed == true && mounted) {
       await authProvider.logout();
       if (mounted) {
-        navigator.pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-          (route) => false,
-        );
+        AppNavigator.toLogin();
       }
     }
   }
@@ -124,9 +120,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       color: AppColors.tertiary,
                       onTap: () {
                         Navigator.of(sheetContext).pop();
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const StockDashboardScreen()),
-                        );
+                        AppNavigator.toStock(context: context);
                       },
                     ),
                     _MoreTile(
@@ -136,9 +130,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       color: AppColors.accent,
                       onTap: () {
                         Navigator.of(sheetContext).pop();
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const CustomerListScreen()),
-                        );
+                        AppNavigator.toCustomers(context: context);
                       },
                     ),
                     _MoreTile(
@@ -148,21 +140,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       color: const Color(0xFF10B981),
                       onTap: () {
                         Navigator.of(sheetContext).pop();
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const LabelPrintScreen()),
-                        );
+                        AppNavigator.toLabelPrint(context: context);
                       },
                     ),
                     _MoreTile(
                       icon: Icons.insights_rounded,
-                      title: 'Sales Analytics',
+                      title: 'Reports & Analytics',
                       subtitle: 'Charts & revenue',
                       color: const Color(0xFF8B5CF6),
                       onTap: () {
                         Navigator.of(sheetContext).pop();
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const SalesAnalyticsScreen()),
-                        );
+                        AppNavigator.toReports(context: context);
+                      },
+                    ),
+                    _MoreTile(
+                      icon: Icons.settings_rounded,
+                      title: 'Settings',
+                      subtitle: 'Store & printers',
+                      color: const Color(0xFF0EA5E9),
+                      onTap: () {
+                        Navigator.of(sheetContext).pop();
+                        AppNavigator.toSettings(context: context);
                       },
                     ),
                     _MoreTile(
@@ -172,9 +170,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       color: AppColors.warning,
                       onTap: () {
                         Navigator.of(sheetContext).pop();
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const LowStockScreen()),
-                        );
+                        AppNavigator.toLowStock(context: context);
                       },
                     ),
                     _MoreTile(
@@ -231,6 +227,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       'Customer Loyalty Directory',
       'Barcode Label Generation',
       'Sales & Revenue Analytics',
+      'Settings & Hardware Preferences',
     ];
 
     final destinationSubtitles = [
@@ -242,6 +239,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       'Customer profiles, loyalty spend, and default discount memory',
       'Configure label sizes (50x25, 38x25mm) and print price tags',
       'Daily, monthly, and yearly revenue graphs and performance breakdown',
+      'Store details, thermal printer paper size (58mm/80mm), and preferences',
     ];
 
     return Scaffold(
@@ -454,6 +452,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         isSelected: _selectedDesktopIndex == 7,
                         onTap: () => _onSelectDesktopDestination(7),
                       ),
+                      _SidebarNavItem(
+                        icon: Icons.settings_rounded,
+                        label: 'Settings',
+                        isSelected: _selectedDesktopIndex == 8,
+                        onTap: () => _onSelectDesktopDestination(8),
+                      ),
                     ],
                   ),
                 ),
@@ -664,6 +668,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const LabelPrintScreen(isEmbedded: true),
                       // 7: Sales & Revenue Analytics
                       const SalesAnalyticsScreen(isEmbedded: true),
+                      // 8: Settings & Hardware Preferences
+                      const SettingsScreen(isEmbedded: true),
                     ],
                   ),
                 ),
@@ -957,11 +963,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   if (isDesktop) {
                     _onSelectDesktopDestination(7);
                   } else {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const SalesAnalyticsScreen(),
-                      ),
-                    );
+                    AppNavigator.toReports(context: context);
                   }
                 },
                 icon: const Icon(Icons.analytics_rounded, size: 16),
@@ -1024,9 +1026,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   if (isDesktop) {
                     _onSelectDesktopDestination(7);
                   } else {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const SalesAnalyticsScreen()),
-                    );
+                    AppNavigator.toReports(context: context);
                   }
                 },
               ),
@@ -1042,9 +1042,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   if (isDesktop) {
                     _onSelectDesktopDestination(7);
                   } else {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const SalesAnalyticsScreen()),
-                    );
+                    AppNavigator.toReports(context: context);
                   }
                 },
               ),
@@ -1060,9 +1058,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   if (isDesktop) {
                     _onSelectDesktopDestination(7);
                   } else {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const SalesAnalyticsScreen()),
-                    );
+                    AppNavigator.toReports(context: context);
                   }
                 },
               ),
@@ -1078,9 +1074,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   if (isDesktop) {
                     _onSelectDesktopDestination(5);
                   } else {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const CustomerListScreen()),
-                    );
+                    AppNavigator.toCustomers(context: context);
                   }
                 },
               ),
@@ -1111,9 +1105,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 icon: Icons.warning_amber_rounded,
                 color: AppColors.warning,
                 onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const LowStockScreen()),
-                  );
+                  AppNavigator.toLowStock(context: context);
                 },
               ),
             ],
@@ -1203,9 +1195,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   if (isDesktop) {
                     _onSelectDesktopDestination(3);
                   } else {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const StockDashboardScreen()),
-                    );
+                    AppNavigator.toStock(context: context);
                   }
                 },
               ),
@@ -1231,9 +1221,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   if (isDesktop) {
                     _onSelectDesktopDestination(5);
                   } else {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const CustomerListScreen()),
-                    );
+                    AppNavigator.toCustomers(context: context);
                   }
                 },
               ),
@@ -1246,9 +1234,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   if (isDesktop) {
                     _onSelectDesktopDestination(7);
                   } else {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const SalesAnalyticsScreen()),
-                    );
+                    AppNavigator.toReports(context: context);
                   }
                 },
               ),
@@ -1258,9 +1244,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 icon: Icons.warning_amber_rounded,
                 color: AppColors.warning,
                 onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const LowStockScreen()),
-                  );
+                  AppNavigator.toLowStock(context: context);
                 },
               ),
               _ModuleCard(
@@ -1272,9 +1256,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   if (isDesktop) {
                     _onSelectDesktopDestination(6);
                   } else {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const LabelPrintScreen()),
-                    );
+                    AppNavigator.toLabelPrint(context: context);
                   }
                 },
               ),

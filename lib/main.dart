@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/constants/app_constants.dart';
 import 'core/constants/supabase_constants.dart';
+import 'core/routes/app_navigator.dart';
+import 'core/routes/app_router.dart';
+import 'core/routes/app_routes.dart';
 import 'providers/auth_provider.dart';
 import 'providers/bill_provider.dart';
 import 'providers/customer_provider.dart';
@@ -14,7 +17,6 @@ import 'repositories/customer_repository.dart';
 import 'repositories/dashboard_repository.dart';
 import 'repositories/product_repository.dart';
 import 'repositories/stock_repository.dart';
-import 'screens/splash/splash_screen.dart';
 import 'services/auth_service.dart';
 import 'theme/app_theme.dart';
 
@@ -101,7 +103,9 @@ class VahaalKidsFashionApp extends StatelessWidget {
         title: AppConstants.appName,
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
-        home: const SplashScreen(),
+        navigatorKey: AppNavigator.navigatorKey,
+        initialRoute: AppRoutes.splash,
+        onGenerateRoute: AppRouter.onGenerateRoute,
       ),
     );
   }

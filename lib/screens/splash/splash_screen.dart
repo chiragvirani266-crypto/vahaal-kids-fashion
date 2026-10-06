@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/routes/app_navigator.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_colors.dart';
-import '../auth/login_screen.dart';
-import '../dashboard/dashboard_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -49,27 +48,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     final authProvider = context.read<AuthProvider>();
     if (authProvider.isAuthenticated) {
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          pageBuilder: (_, __, ___) => const DashboardScreen(),
-          transitionsBuilder: (_, animation, __, child) => FadeTransition(
-            opacity: animation,
-            child: child,
-          ),
-          transitionDuration: const Duration(milliseconds: 400),
-        ),
-      );
+      AppNavigator.toDashboard(context: context);
     } else {
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          pageBuilder: (_, __, ___) => const LoginScreen(),
-          transitionsBuilder: (_, animation, __, child) => FadeTransition(
-            opacity: animation,
-            child: child,
-          ),
-          transitionDuration: const Duration(milliseconds: 400),
-        ),
-      );
+      AppNavigator.toLogin(context: context);
     }
   }
 
