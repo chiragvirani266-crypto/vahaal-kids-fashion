@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_constants.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/customer_provider.dart';
-import '../../providers/product_provider.dart';
+import '../../providers/dashboard_provider.dart';
 import '../../theme/app_colors.dart';
+import '../analytics/sales_analytics_screen.dart';
+import '../analytics/widgets/sales_line_chart_card.dart';
+import '../analytics/widgets/top_customers_card.dart';
+import '../analytics/widgets/top_selling_products_card.dart';
 import '../auth/login_screen.dart';
 import '../billing/bill_history_screen.dart';
 import '../billing/billing_screen.dart';
@@ -13,10 +17,26 @@ import '../inventory/product_list_screen.dart';
 import '../stock/low_stock_screen.dart';
 import '../stock/stock_dashboard_screen.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<DashboardProvider>().loadDashboard();
+    });
+  }
+
   Future<void> _handleLogout(BuildContext context) async {
+    final authProvider = context.read<AuthProvider>();
+    final navigator = Navigator.of(context);
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -51,10 +71,10 @@ class DashboardScreen extends StatelessWidget {
       ),
     );
 
-    if (confirmed == true && context.mounted) {
-      await context.read<AuthProvider>().logout();
-      if (context.mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
+    if (confirmed == true && mounted) {
+      await authProvider.logout();
+      if (mounted) {
+        navigator.pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const LoginScreen()),
           (route) => false,
         );
@@ -65,12 +85,12 @@ class DashboardScreen extends StatelessWidget {
   Color _getRoleColor(String role) {
     switch (role.toLowerCase()) {
       case 'admin':
-        return AppColors.secondary; // Vibrant Pink/Rose
+        return AppColors.secondary;
       case 'manager':
-        return AppColors.accent;    // Amber
+        return AppColors.accent;
       case 'cashier':
       default:
-        return AppColors.primary;   // Indigo
+        return AppColors.primary;
     }
   }
 
@@ -101,6 +121,9 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
+    final dashboardProvider = context.watch<DashboardProvider>();
+    final overview = dashboardProvider.overview;
+
     final user = authProvider.userProfile;
     final role = user?.role ?? 'cashier';
     final roleColor = _getRoleColor(role);
@@ -135,6 +158,13 @@ class DashboardScreen extends StatelessWidget {
           ],
         ),
         actions: [
+          // Refresh Dashboard Action
+          IconButton(
+            tooltip: 'Refresh Dashboard',
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: () => dashboardProvider.loadDashboard(refresh: true),
+          ),
+
           // User & Role Pill in Top Bar
           Container(
             margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
@@ -196,7 +226,7 @@ class DashboardScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Welcome Header Card with Role-specific highlight
+            // Welcome Header Card with Store Online Status
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -297,67 +327,188 @@ class DashboardScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
 
-            // Quick Stats Row
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final crossAxisCount = isDesktop ? 4 : (constraints.maxWidth > 600 ? 2 : 1);
-                return GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: crossAxisCount,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: isDesktop ? 2.1 : 2.5,
-                  children: [
-                    const _KpiCard(
-                      title: "Today's Sales",
-                      value: "₹0.00",
-                      subtitle: "0 bills generated",
-                      icon: Icons.receipt_long_rounded,
-                      color: AppColors.primary,
-                    ),
-                    _KpiCard(
-                      title: "Total Products",
-                      value: "${context.watch<ProductProvider>().totalProductsCount} Products",
-                      subtitle: "${context.watch<ProductProvider>().totalStockItems} items in stock",
-                      icon: Icons.checkroom_rounded,
-                      color: AppColors.secondary,
-                    ),
-                    _KpiCard(
-                      title: "Customers",
-                      value: "${context.watch<CustomerProvider>().totalCustomersCount} Members",
-                      subtitle: "Registered members",
-                      icon: Icons.people_alt_rounded,
-                      color: AppColors.tertiary,
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const CustomerListScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                    _KpiCard(
-                      title: "Low Stock Alert",
-                      value: "${context.watch<ProductProvider>().lowStockCount} Items",
-                      subtitle: "Requires restock",
-                      icon: Icons.warning_amber_rounded,
-                      color: AppColors.warning,
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const LowStockScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                );
-              },
+            // Section Header: Core KPI Cards
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Sales & Store Overview',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimaryLight,
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const SalesAnalyticsScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.analytics_rounded, size: 16),
+                  label: const Text('Detailed Analytics'),
+                ),
+              ],
             ),
+            const SizedBox(height: 12),
+
+            // 8 Core Dashboard Cards Grid
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: isDesktop ? 4 : (size.width > 600 ? 2 : 1),
+              crossAxisSpacing: 14,
+              mainAxisSpacing: 14,
+              childAspectRatio: isDesktop ? 2.1 : 2.4,
+              children: [
+                // 1. Today's Sales
+                _KpiCard(
+                  title: "Today's Sales",
+                  value: '₹${overview.todaySales.toStringAsFixed(2)}',
+                  subtitle: '${overview.todayBillsCount} bills generated today',
+                  icon: Icons.today_rounded,
+                  color: AppColors.primary,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const BillHistoryScreen()),
+                    );
+                  },
+                ),
+
+                // 2. Today's Bills
+                _KpiCard(
+                  title: "Today's Bills",
+                  value: '${overview.todayBillsCount} Bills',
+                  subtitle: 'Completed transactions',
+                  icon: Icons.receipt_long_rounded,
+                  color: const Color(0xFF0EA5E9),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const BillHistoryScreen()),
+                    );
+                  },
+                ),
+
+                // 3. This Month Sales
+                _KpiCard(
+                  title: 'This Month Sales',
+                  value: '₹${overview.monthSales.toStringAsFixed(2)}',
+                  subtitle: '${overview.monthBillsCount} bills in ${DateFormat('MMM yyyy').format(DateTime.now())}',
+                  icon: Icons.calendar_month_rounded,
+                  color: AppColors.secondary,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const SalesAnalyticsScreen()),
+                    );
+                  },
+                ),
+
+                // 4. This Year Sales
+                _KpiCard(
+                  title: 'This Year Sales',
+                  value: '₹${overview.yearSales.toStringAsFixed(2)}',
+                  subtitle: '${overview.yearBillsCount} bills in ${DateTime.now().year}',
+                  icon: Icons.auto_graph_rounded,
+                  color: const Color(0xFF8B5CF6),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const SalesAnalyticsScreen()),
+                    );
+                  },
+                ),
+
+                // 5. Total Sales
+                _KpiCard(
+                  title: 'Total Sales (Lifetime)',
+                  value: '₹${overview.totalSales.toStringAsFixed(2)}',
+                  subtitle: '${overview.totalBillsCount} lifetime invoices',
+                  icon: Icons.account_balance_wallet_rounded,
+                  color: const Color(0xFF10B981),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const SalesAnalyticsScreen()),
+                    );
+                  },
+                ),
+
+                // 6. Total Customers
+                _KpiCard(
+                  title: 'Total Customers',
+                  value: '${overview.totalCustomersCount} Members',
+                  subtitle: 'Registered store members',
+                  icon: Icons.people_alt_rounded,
+                  color: AppColors.tertiary,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const CustomerListScreen(),
+                      ),
+                    );
+                  },
+                ),
+
+                // 7. Total Products
+                _KpiCard(
+                  title: 'Total Products',
+                  value: '${overview.totalProductsCount} Products',
+                  subtitle: '${overview.totalStockUnits} stock items cataloged',
+                  icon: Icons.checkroom_rounded,
+                  color: const Color(0xFF6366F1),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const ProductListScreen(),
+                      ),
+                    );
+                  },
+                ),
+
+                // 8. Low Stock Products
+                _KpiCard(
+                  title: 'Low Stock Products',
+                  value: '${overview.lowStockCount} Items',
+                  subtitle: overview.lowStockCount > 0
+                      ? 'Requires replenishment'
+                      : 'Stock levels healthy',
+                  icon: Icons.warning_amber_rounded,
+                  color: AppColors.warning,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const LowStockScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // Embedded Interactive Sales Line Chart (Daily, Monthly, Yearly)
+            const SalesLineChartCard(enableDateRangePicker: true),
+            const SizedBox(height: 24),
+
+            // Top Products and Top Customers Row
+            if (isDesktop)
+              const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: TopSellingProductsCard()),
+                  SizedBox(width: 16),
+                  Expanded(child: TopCustomersCard()),
+                ],
+              )
+            else ...[
+              const TopSellingProductsCard(),
+              const SizedBox(height: 16),
+              const TopCustomersCard(),
+            ],
+
             const SizedBox(height: 28),
 
-            // Section Header
+            // Quick Actions & Modules Section Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -385,7 +536,7 @@ class DashboardScreen extends StatelessWidget {
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: isDesktop ? 4 : (MediaQuery.of(context).size.width > 600 ? 2 : 1),
+              crossAxisCount: isDesktop ? 4 : (size.width > 600 ? 2 : 1),
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
               childAspectRatio: 1.6,
@@ -455,34 +606,45 @@ class DashboardScreen extends StatelessWidget {
                     );
                   },
                 ),
-                if (authProvider.isAdmin) ...[
-                  _ModuleCard(
-                    title: 'Sales & Revenue Reports',
-                    description: 'Daily, monthly & yearly store analytics',
-                    icon: Icons.bar_chart_rounded,
-                    color: const Color(0xFF8B5CF6),
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const BillHistoryScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                  _ModuleCard(
-                    title: 'Barcode Label Printing',
-                    description: 'Generate price tags for new arrivals',
-                    icon: Icons.qr_code_2_rounded,
-                    color: const Color(0xFF10B981),
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const ProductListScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                ],
+                _ModuleCard(
+                  title: 'Sales & Revenue Analytics',
+                  description: 'Daily, monthly & yearly interactive charts',
+                  icon: Icons.bar_chart_rounded,
+                  color: const Color(0xFF8B5CF6),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const SalesAnalyticsScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _ModuleCard(
+                  title: 'Low Stock Replenishment',
+                  description: 'Fast stock in for products below threshold',
+                  icon: Icons.warning_amber_rounded,
+                  color: AppColors.warning,
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const LowStockScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _ModuleCard(
+                  title: 'Barcode Label Printing',
+                  description: 'Generate price tags for new arrivals',
+                  icon: Icons.qr_code_2_rounded,
+                  color: const Color(0xFF10B981),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const ProductListScreen(),
+                      ),
+                    );
+                  },
+                ),
               ],
             ),
           ],
@@ -533,7 +695,7 @@ class _KpiCard extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: isDark ? AppColors.cardDark : AppColors.cardLight,
           borderRadius: BorderRadius.circular(14),
@@ -544,14 +706,14 @@ class _KpiCard extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: color.withAlpha(25),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, color: color, size: 24),
+              child: Icon(icon, color: color, size: 22),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -560,32 +722,38 @@ class _KpiCard extends StatelessWidget {
                   Text(
                     title,
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 11,
                       fontWeight: FontWeight.w500,
                       color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Text(
                     value,
                     style: const TextStyle(
-                      fontSize: 17,
+                      fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: AppColors.textPrimaryLight,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     subtitle,
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 10,
                       color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
             if (onTap != null)
-              const Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.textMutedLight),
+              const Icon(Icons.chevron_right_rounded, size: 16, color: AppColors.textMutedLight),
           ],
         ),
       ),
@@ -616,7 +784,7 @@ class _ModuleCard extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: Container(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isDark ? AppColors.cardDark : AppColors.cardLight,
           borderRadius: BorderRadius.circular(14),
@@ -634,7 +802,7 @@ class _ModuleCard extends StatelessWidget {
                 color: color.withAlpha(25),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, color: color, size: 24),
+              child: Icon(icon, color: color, size: 22),
             ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -642,12 +810,12 @@ class _ModuleCard extends StatelessWidget {
                 Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 14,
+                    fontSize: 13,
                     fontWeight: FontWeight.bold,
                     color: AppColors.textPrimaryLight,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Text(
                   description,
                   style: TextStyle(

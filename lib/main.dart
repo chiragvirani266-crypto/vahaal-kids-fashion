@@ -6,10 +6,12 @@ import 'core/constants/supabase_constants.dart';
 import 'providers/auth_provider.dart';
 import 'providers/bill_provider.dart';
 import 'providers/customer_provider.dart';
+import 'providers/dashboard_provider.dart';
 import 'providers/product_provider.dart';
 import 'providers/stock_provider.dart';
 import 'repositories/bill_repository.dart';
 import 'repositories/customer_repository.dart';
+import 'repositories/dashboard_repository.dart';
 import 'repositories/product_repository.dart';
 import 'repositories/stock_repository.dart';
 import 'screens/splash/splash_screen.dart';
@@ -83,6 +85,15 @@ class VahaalKidsFashionApp extends StatelessWidget {
         ChangeNotifierProvider<BillProvider>(
           create: (context) => BillProvider(
             repository: context.read<BillRepository>(),
+          ),
+        ),
+        // DashboardRepository & DashboardProvider injection
+        Provider<DashboardRepository>(
+          create: (_) => SupabaseDashboardRepository(),
+        ),
+        ChangeNotifierProvider<DashboardProvider>(
+          create: (context) => DashboardProvider(
+            repository: context.read<DashboardRepository>(),
           ),
         ),
       ],
