@@ -651,6 +651,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: null,
         onPressed: () {
           Navigator.of(context).push(
             MaterialPageRoute(

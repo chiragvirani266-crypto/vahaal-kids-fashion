@@ -56,6 +56,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: null,
         onPressed: () {
           Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const AddCustomerScreen()),

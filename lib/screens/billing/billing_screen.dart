@@ -584,6 +584,7 @@ class _BillingScreenState extends State<BillingScreen> {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             // Top Badge Row (Category & Stock)
             Row(
@@ -621,30 +622,38 @@ class _BillingScreenState extends State<BillingScreen> {
                 ),
               ],
             ),
-            const Spacer(),
+            const SizedBox(height: 6),
 
-            // Product Name
-            Text(
-              product.productName,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimaryLight,
+            // Product Name & SKU
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    product.productName,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimaryLight,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'SKU: ${product.sku} • ${product.variants.length} sizes',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 2),
-
-            // SKU & Variant Count
-            Text(
-              'SKU: ${product.sku} • ${product.variants.length} sizes',
-              style: TextStyle(
-                fontSize: 10,
-                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-              ),
-            ),
-            const Spacer(),
+            const SizedBox(height: 6),
 
             // Price & Add Button
             Row(
@@ -1318,30 +1327,35 @@ class _BillingScreenState extends State<BillingScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => Container(
-        height: MediaQuery.of(context).size.height * 0.85,
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Current Bill / Cart',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close_rounded),
-                  onPressed: () => Navigator.of(ctx).pop(),
-                ),
-              ],
-            ),
-            const Divider(),
-            _buildCustomerTile(),
-            const SizedBox(height: 8),
-            Expanded(child: _buildCartItemsList()),
-            _buildCheckoutSection(),
-          ],
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(ctx).viewInsets.bottom,
+        ),
+        child: Container(
+          height: MediaQuery.of(context).size.height * 0.85,
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Current Bill / Cart',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.of(ctx).pop(),
+                  ),
+                ],
+              ),
+              const Divider(),
+              _buildCustomerTile(),
+              const SizedBox(height: 8),
+              Expanded(child: _buildCartItemsList()),
+              _buildCheckoutSection(),
+            ],
+          ),
         ),
       ),
     );
