@@ -231,7 +231,7 @@ class _BillingScreenState extends State<BillingScreen> {
     final bodyContent = isDesktop ? _buildDesktopLayout() : _buildMobileLayout();
 
     if (widget.isEmbedded) {
-      return Container(
+      return Material(
         color: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
         child: Column(
           children: [
@@ -247,31 +247,38 @@ class _BillingScreenState extends State<BillingScreen> {
                 ),
               ),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Consumer<BillProvider>(
-                      builder: (_, bp, __) => Row(
-                        children: [
-                          const Icon(Icons.point_of_sale_rounded, color: AppColors.primary, size: 16),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Active Invoice: ${bp.previewBillNumber}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                              color: AppColors.primary,
+                  Flexible(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Consumer<BillProvider>(
+                        builder: (_, bp, __) => Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.point_of_sale_rounded, color: AppColors.primary, size: 16),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                'Active Invoice: ${bp.previewBillNumber}',
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                  color: AppColors.primary,
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                  const Spacer(),
+                  const SizedBox(width: 8),
                   // Clear Cart Action with Confirmation Dialog
                   Consumer<BillProvider>(
                     builder: (context, bp, _) {
@@ -281,7 +288,7 @@ class _BillingScreenState extends State<BillingScreen> {
                         label: const Text('Clear Cart', style: TextStyle(color: AppColors.error, fontSize: 12)),
                         style: OutlinedButton.styleFrom(
                           side: BorderSide(color: AppColors.error.withValues(alpha: 0.5)),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         ),
                         onPressed: () => _confirmClearCart(bp),
                       );
