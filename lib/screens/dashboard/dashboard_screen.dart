@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_constants.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/customer_provider.dart';
 import '../../providers/product_provider.dart';
 import '../../theme/app_colors.dart';
 import '../auth/login_screen.dart';
+import '../customers/customer_list_screen.dart';
 import '../inventory/product_list_screen.dart';
 import '../stock/low_stock_screen.dart';
 import '../stock/stock_dashboard_screen.dart';
@@ -319,12 +321,19 @@ class DashboardScreen extends StatelessWidget {
                       icon: Icons.checkroom_rounded,
                       color: AppColors.secondary,
                     ),
-                    const _KpiCard(
+                    _KpiCard(
                       title: "Customers",
-                      value: "0",
+                      value: "${context.watch<CustomerProvider>().totalCustomersCount} Members",
                       subtitle: "Registered members",
                       icon: Icons.people_alt_rounded,
                       color: AppColors.tertiary,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const CustomerListScreen(),
+                          ),
+                        );
+                      },
                     ),
                     _KpiCard(
                       title: "Low Stock Alert",
@@ -424,7 +433,13 @@ class DashboardScreen extends StatelessWidget {
                   description: 'Track loyalty, birthdates & purchase records',
                   icon: Icons.person_search_rounded,
                   color: AppColors.accent,
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const CustomerListScreen(),
+                      ),
+                    );
+                  },
                 ),
                 if (authProvider.isAdmin) ...[
                   _ModuleCard(
