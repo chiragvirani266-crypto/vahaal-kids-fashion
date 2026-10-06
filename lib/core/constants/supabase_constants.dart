@@ -11,17 +11,13 @@ class SupabaseConstants {
   );
 
   // Table names
-  static const String tableStoreProfiles = 'store_profiles';
-  static const String tableUserProfiles = 'user_profiles';
-  static const String tableCategories = 'categories';
+  static const String tableProfiles = 'profiles';
   static const String tableProducts = 'products';
   static const String tableProductVariants = 'product_variants';
   static const String tableCustomers = 'customers';
-  static const String tableSales = 'sales';
-  static const String tableSaleItems = 'sale_items';
-  static const String tablePayments = 'payments';
-  static const String tableInventoryTransactions = 'inventory_transactions';
-  static const String tableDiscounts = 'discounts';
+  static const String tableBills = 'bills';
+  static const String tableBillItems = 'bill_items';
+  static const String tableStockTransactions = 'stock_transactions';
 
   // Storage buckets
   static const String bucketProductImages = 'product-images';

@@ -98,7 +98,7 @@ class SupabaseAuthService implements AuthService {
   Future<UserProfile?> fetchUserProfile(String userId) async {
     try {
       final data = await _supabase
-          .from(SupabaseConstants.tableUserProfiles)
+          .from(SupabaseConstants.tableProfiles)
           .select()
           .eq('id', userId)
           .maybeSingle();

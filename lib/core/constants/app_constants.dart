@@ -1,6 +1,6 @@
 class AppConstants {
   static const String appName = 'Vahaal Kids Fashion';
-  static const String appTagline = 'Kidswear POS & Inventory Management (0–12 Yrs)';
+  static const String appTagline = 'Kidswear & Inventory Management (0–12 Yrs)';
   static const String currencySymbol = '₹';
 
   // Age groups for kidswear

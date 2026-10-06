@@ -117,7 +117,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 4),
                         Center(
                           child: Text(
-                            'Staff Point of Sale & Inventory Login',
+                            'Store & Inventory Management',
                             style: TextStyle(
                               fontSize: 13,
                               color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
@@ -186,7 +186,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         // Login Action Button
                         AppButton(
-                          text: 'Sign In to POS',
+                          text: 'Sign In',
                           icon: Icons.login_rounded,
                           isLoading: authProvider.isLoading,
                           onPressed: _handleLogin,

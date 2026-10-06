@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_constants.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/product_provider.dart';
 import '../../theme/app_colors.dart';
 import '../auth/login_screen.dart';
+import '../inventory/product_list_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -21,7 +23,7 @@ class DashboardScreen extends StatelessWidget {
           ],
         ),
         content: const Text(
-          'Are you sure you want to end your POS session and sign out?',
+          'Are you sure you want to end your session and sign out from Vahaal Kids?',
           style: TextStyle(fontSize: 14),
         ),
         actions: [
@@ -54,10 +56,50 @@ class DashboardScreen extends StatelessWidget {
     }
   }
 
+  Color _getRoleColor(String role) {
+    switch (role.toLowerCase()) {
+      case 'admin':
+        return AppColors.secondary; // Vibrant Pink/Rose
+      case 'manager':
+        return AppColors.accent;    // Amber
+      case 'cashier':
+      default:
+        return AppColors.primary;   // Indigo
+    }
+  }
+
+  IconData _getRoleIcon(String role) {
+    switch (role.toLowerCase()) {
+      case 'admin':
+        return Icons.admin_panel_settings_rounded;
+      case 'manager':
+        return Icons.supervisor_account_rounded;
+      case 'cashier':
+      default:
+        return Icons.badge_rounded;
+    }
+  }
+
+  String _getRoleLabel(String role) {
+    switch (role.toLowerCase()) {
+      case 'admin':
+        return 'STORE ADMIN';
+      case 'manager':
+        return 'MANAGER';
+      case 'cashier':
+      default:
+        return 'CASHIER';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
     final user = authProvider.userProfile;
+    final role = user?.role ?? 'cashier';
+    final roleColor = _getRoleColor(role);
+    final roleIcon = _getRoleIcon(role);
+    final roleLabel = _getRoleLabel(role);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final size = MediaQuery.of(context).size;
     final isDesktop = size.width > 900;
@@ -87,10 +129,10 @@ class DashboardScreen extends StatelessWidget {
           ],
         ),
         actions: [
-          // Staff Profile Chip
+          // User & Role Pill in Top Bar
           Container(
             margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
               color: isDark ? AppColors.surfaceDark : Colors.white,
               borderRadius: BorderRadius.circular(30),
@@ -103,17 +145,8 @@ class DashboardScreen extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 13,
-                  backgroundColor: AppColors.primaryLight,
-                  child: Text(
-                    authProvider.userName.isNotEmpty
-                        ? authProvider.userName[0].toUpperCase()
-                        : 'S',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
+                  backgroundColor: roleColor.withAlpha(40),
+                  child: Icon(roleIcon, size: 14, color: roleColor),
                 ),
                 const SizedBox(width: 8),
                 Column(
@@ -128,11 +161,12 @@ class DashboardScreen extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      authProvider.userRole,
+                      roleLabel,
                       style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: authProvider.isAdmin ? AppColors.secondary : AppColors.primary,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        color: roleColor,
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ],
@@ -141,8 +175,8 @@ class DashboardScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          
-          // Logout Button
+
+          // Logout Action
           IconButton(
             tooltip: 'Sign Out',
             icon: const Icon(Icons.logout_rounded, color: AppColors.error),
@@ -156,13 +190,16 @@ class DashboardScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Welcome Header Card
+            // Welcome Header Card with Role-specific highlight
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppColors.primary, AppColors.primaryDark],
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.primary,
+                    authProvider.isAdmin ? const Color(0xFF6D28D9) : AppColors.primaryDark,
+                  ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -181,21 +218,49 @@ class DashboardScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Welcome back, ${authProvider.userName}!',
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
+                        Row(
+                          children: [
+                            Text(
+                              'Welcome, ${authProvider.userName}',
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 6),
-                        Text(
-                          'Logged in as ${authProvider.userRole} • ${user?.email ?? ''}',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.white.withAlpha(220),
-                          ),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withAlpha(50),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                roleLabel,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  letterSpacing: 0.4,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                user?.email ?? '',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.white.withAlpha(220),
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -211,7 +276,7 @@ class DashboardScreen extends StatelessWidget {
                         const Icon(Icons.circle, size: 8, color: AppColors.success),
                         const SizedBox(width: 6),
                         Text(
-                          'POS Terminal Active',
+                          'Store Online',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -237,22 +302,22 @@ class DashboardScreen extends StatelessWidget {
                   crossAxisSpacing: 16,
                   mainAxisSpacing: 16,
                   childAspectRatio: isDesktop ? 2.1 : 2.5,
-                  children: const [
-                    _KpiCard(
+                  children: [
+                    const _KpiCard(
                       title: "Today's Sales",
                       value: "₹0.00",
                       subtitle: "0 bills generated",
-                      icon: Icons.point_of_sale_rounded,
+                      icon: Icons.receipt_long_rounded,
                       color: AppColors.primary,
                     ),
                     _KpiCard(
                       title: "Total Products",
-                      value: "0 Items",
-                      subtitle: "In stock",
+                      value: "${context.watch<ProductProvider>().totalProductsCount} Products",
+                      subtitle: "${context.watch<ProductProvider>().totalStockItems} items in stock",
                       icon: Icons.checkroom_rounded,
                       color: AppColors.secondary,
                     ),
-                    _KpiCard(
+                    const _KpiCard(
                       title: "Customers",
                       value: "0",
                       subtitle: "Registered members",
@@ -261,7 +326,7 @@ class DashboardScreen extends StatelessWidget {
                     ),
                     _KpiCard(
                       title: "Low Stock Alert",
-                      value: "0 Variants",
+                      value: "${context.watch<ProductProvider>().lowStockCount} Items",
                       subtitle: "Requires restock",
                       icon: Icons.warning_amber_rounded,
                       color: AppColors.warning,
@@ -272,18 +337,31 @@ class DashboardScreen extends StatelessWidget {
             ),
             const SizedBox(height: 28),
 
-            // Modules Section Header
-            const Text(
-              'Quick Actions & Modules',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimaryLight,
-              ),
+            // Section Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Quick Actions & Modules',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimaryLight,
+                  ),
+                ),
+                Text(
+                  'Role: $roleLabel',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: roleColor,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 14),
 
-            // Navigation Modules Grid
+            // Modules Grid
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -293,33 +371,55 @@ class DashboardScreen extends StatelessWidget {
               childAspectRatio: 1.6,
               children: [
                 _ModuleCard(
-                  title: 'POS Billing Terminal',
-                  description: 'Quick barcode scan, discounts, and print bills',
+                  title: 'Billing & Checkout',
+                  description: 'Scan barcode, add customer, discounts, & print bills',
                   icon: Icons.receipt_long_rounded,
                   color: AppColors.primary,
                   onTap: () {},
                 ),
                 _ModuleCard(
                   title: 'Product Catalog & Sizes',
-                  description: 'Manage 0-12Y age sizes, inventory & barcodes',
+                  description: 'Manage 0–12Y sizes, prices, colors & barcodes',
                   icon: Icons.inventory_2_rounded,
                   color: AppColors.secondary,
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const ProductListScreen(),
+                      ),
+                    );
+                  },
                 ),
                 _ModuleCard(
-                  title: 'Sales History & Invoices',
-                  description: 'Search bills, WhatsApp share & thermal reprints',
+                  title: 'Sales & Bills History',
+                  description: 'Search invoices, WhatsApp share & reprints',
                   icon: Icons.history_rounded,
                   color: AppColors.tertiary,
                   onTap: () {},
                 ),
                 _ModuleCard(
                   title: 'Customer Directory',
-                  description: 'Track loyalty, kids birthdates & purchase records',
+                  description: 'Track loyalty, birthdates & purchase records',
                   icon: Icons.person_search_rounded,
                   color: AppColors.accent,
                   onTap: () {},
                 ),
+                if (authProvider.isAdmin) ...[
+                  _ModuleCard(
+                    title: 'Sales & Revenue Reports',
+                    description: 'Daily, monthly & yearly store analytics',
+                    icon: Icons.bar_chart_rounded,
+                    color: const Color(0xFF8B5CF6),
+                    onTap: () {},
+                  ),
+                  _ModuleCard(
+                    title: 'Barcode Label Printing',
+                    description: 'Generate price tags for new arrivals',
+                    icon: Icons.qr_code_2_rounded,
+                    color: const Color(0xFF0EA5E9),
+                    onTap: () {},
+                  ),
+                ],
               ],
             ),
           ],
