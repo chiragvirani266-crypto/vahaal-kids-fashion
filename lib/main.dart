@@ -4,9 +4,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/constants/app_constants.dart';
 import 'core/constants/supabase_constants.dart';
 import 'providers/auth_provider.dart';
+import 'providers/bill_provider.dart';
 import 'providers/customer_provider.dart';
 import 'providers/product_provider.dart';
 import 'providers/stock_provider.dart';
+import 'repositories/bill_repository.dart';
 import 'repositories/customer_repository.dart';
 import 'repositories/product_repository.dart';
 import 'repositories/stock_repository.dart';
@@ -72,6 +74,15 @@ class VahaalKidsFashionApp extends StatelessWidget {
         ChangeNotifierProvider<CustomerProvider>(
           create: (context) => CustomerProvider(
             repository: context.read<CustomerRepository>(),
+          ),
+        ),
+        // BillRepository & BillProvider injection
+        Provider<BillRepository>(
+          create: (_) => SupabaseBillRepository(),
+        ),
+        ChangeNotifierProvider<BillProvider>(
+          create: (context) => BillProvider(
+            repository: context.read<BillRepository>(),
           ),
         ),
       ],

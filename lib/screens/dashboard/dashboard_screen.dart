@@ -6,6 +6,8 @@ import '../../providers/customer_provider.dart';
 import '../../providers/product_provider.dart';
 import '../../theme/app_colors.dart';
 import '../auth/login_screen.dart';
+import '../billing/bill_history_screen.dart';
+import '../billing/billing_screen.dart';
 import '../customers/customer_list_screen.dart';
 import '../inventory/product_list_screen.dart';
 import '../stock/low_stock_screen.dart';
@@ -393,7 +395,13 @@ class DashboardScreen extends StatelessWidget {
                   description: 'Scan barcode, add customer, discounts, & print bills',
                   icon: Icons.receipt_long_rounded,
                   color: AppColors.primary,
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const BillingScreen(),
+                      ),
+                    );
+                  },
                 ),
                 _ModuleCard(
                   title: 'Product Catalog & Sizes',
@@ -426,7 +434,13 @@ class DashboardScreen extends StatelessWidget {
                   description: 'Search invoices, WhatsApp share & reprints',
                   icon: Icons.history_rounded,
                   color: const Color(0xFF0EA5E9),
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const BillHistoryScreen(),
+                      ),
+                    );
+                  },
                 ),
                 _ModuleCard(
                   title: 'Customer Directory',
@@ -447,19 +461,47 @@ class DashboardScreen extends StatelessWidget {
                     description: 'Daily, monthly & yearly store analytics',
                     icon: Icons.bar_chart_rounded,
                     color: const Color(0xFF8B5CF6),
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const BillHistoryScreen(),
+                        ),
+                      );
+                    },
                   ),
                   _ModuleCard(
                     title: 'Barcode Label Printing',
                     description: 'Generate price tags for new arrivals',
                     icon: Icons.qr_code_2_rounded,
                     color: const Color(0xFF10B981),
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const ProductListScreen(),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ],
             ),
           ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const BillingScreen(),
+            ),
+          );
+        },
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.receipt_long_rounded),
+        label: const Text(
+          'New Bill & Checkout',
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
     );
