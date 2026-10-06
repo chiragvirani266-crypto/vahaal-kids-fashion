@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/bill_model.dart';
 import '../../models/customer_model.dart';
 import '../../models/product_model.dart';
+import '../../models/product_variant_model.dart';
 import '../../screens/analytics/sales_analytics_screen.dart';
 import '../../screens/auth/login_screen.dart';
 import '../../screens/billing/bill_details_screen.dart';
@@ -99,6 +100,21 @@ class AppRouter {
         return _buildErrorRoute('EditProduct requires a Product argument');
 
       case AppRoutes.labelPrint:
+        final args = settings.arguments;
+        if (args is Map) {
+          return _buildRoute(
+            LabelPrintScreen(
+              initialProduct: args['product'] as Product?,
+              initialVariant: args['variant'] as ProductVariant?,
+            ),
+            settings,
+          );
+        } else if (args is Product) {
+          return _buildRoute(
+            LabelPrintScreen(initialProduct: args),
+            settings,
+          );
+        }
         return _buildRoute(const LabelPrintScreen(), settings);
 
       // -----------------------------------------------------------------------

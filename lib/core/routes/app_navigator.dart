@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/bill_model.dart';
 import '../../models/customer_model.dart';
 import '../../models/product_model.dart';
+import '../../models/product_variant_model.dart';
 import 'app_routes.dart';
 
 /// Centralized Navigation Service
@@ -150,8 +151,15 @@ class AppNavigator {
     );
   }
 
-  static Future<void> toLabelPrint({BuildContext? context}) {
-    return pushNamed(AppRoutes.labelPrint, context: context);
+  static Future<void> toLabelPrint({
+    BuildContext? context,
+    Product? initialProduct,
+    ProductVariant? initialVariant,
+  }) {
+    final args = (initialProduct != null || initialVariant != null)
+        ? {'product': initialProduct, 'variant': initialVariant}
+        : null;
+    return pushNamed(AppRoutes.labelPrint, context: context, arguments: args);
   }
 
   // 5. Stock

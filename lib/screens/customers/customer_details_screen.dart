@@ -3,9 +3,12 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/routes/app_navigator.dart';
 import '../../models/customer_purchase_bill_model.dart';
+import '../../providers/bill_provider.dart';
 import '../../providers/customer_provider.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/common/app_snackbar.dart';
 import '../billing/bill_details_screen.dart';
 import 'edit_customer_screen.dart';
 
@@ -203,6 +206,33 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 10),
+                  // Start New Bill CTA
+                  SizedBox(
+                    width: double.infinity,
+                    height: 40,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        context.read<BillProvider>().setCustomer(customer);
+                        AppSnackbar.showSuccess(
+                          context,
+                          'Selected ${customer.name} for POS checkout (Discount memory: ${customer.lastDiscount > 0 ? "₹${customer.lastDiscount.toStringAsFixed(2)}" : "None"}).',
+                        );
+                        AppNavigator.toPos(context: context);
+                      },
+                      icon: const Icon(Icons.point_of_sale_rounded, size: 18),
+                      label: const Text(
+                        'Start New Bill for this Customer',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        elevation: 0,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   const Divider(),

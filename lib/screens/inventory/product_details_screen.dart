@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/routes/app_navigator.dart';
 import '../../models/product_model.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/bill_provider.dart';
 import '../../providers/product_provider.dart';
 import '../../theme/app_colors.dart';
-import 'edit_product_screen.dart';
-import 'label_print_screen.dart';
+import '../../widgets/common/app_snackbar.dart';
 
 class ProductDetailsScreen extends StatefulWidget {
   final String productId;
@@ -120,21 +121,16 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             icon: const Icon(Icons.qr_code_2_rounded),
             tooltip: 'Print Barcode Labels',
             onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => LabelPrintScreen(initialProduct: product),
-                ),
-              );
+              AppNavigator.toLabelPrint(context: context, initialProduct: product);
             },
           ),
           IconButton(
             icon: const Icon(Icons.edit_outlined),
             tooltip: 'Edit Product',
             onPressed: () async {
-              final updated = await Navigator.of(context).push<bool>(
-                MaterialPageRoute(
-                  builder: (_) => EditProductScreen(product: product),
-                ),
+              final updated = await AppNavigator.toEditProduct(
+                context: context,
+                product: product,
               );
               if (updated == true && mounted) {
                 provider.loadProductDetails(widget.productId);
@@ -305,10 +301,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                 ),
                 ElevatedButton.icon(
                   onPressed: () async {
-                    final updated = await Navigator.of(context).push<bool>(
-                      MaterialPageRoute(
-                        builder: (_) => EditProductScreen(product: product),
-                      ),
+                    final updated = await AppNavigator.toEditProduct(
+                      context: context,
+                      product: product,
                     );
                     if (updated == true && mounted) {
                       provider.loadProductDetails(widget.productId);
@@ -450,18 +445,43 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 6),
+                        IconButton(
+                          tooltip: 'Add Stock (Stock In)',
+                          icon: const Icon(Icons.add_box_outlined, size: 20, color: AppColors.secondary),
+                          onPressed: () async {
+                            final updated = await AppNavigator.toStockIn(
+                              context: context,
+                              variantId: v.id,
+                            );
+                            if (updated == true && mounted) {
+                              provider.loadProductDetails(widget.productId);
+                            }
+                          },
+                        ),
+                        IconButton(
+                          tooltip: 'Add to POS Cart',
+                          icon: const Icon(Icons.add_shopping_cart_rounded, size: 20, color: AppColors.primary),
+                          onPressed: () {
+                            context.read<BillProvider>().addItem(
+                              product: product,
+                              variant: v,
+                              quantity: 1,
+                            );
+                            AppSnackbar.showSuccess(
+                              context,
+                              'Added ${product.productName} (${v.displayName}) to POS Cart',
+                            );
+                          },
+                        ),
                         IconButton(
                           tooltip: 'Print Barcode Sticker',
-                          icon: const Icon(Icons.qr_code_2_rounded, size: 20, color: AppColors.primary),
+                          icon: const Icon(Icons.qr_code_2_rounded, size: 20, color: AppColors.textSecondaryLight),
                           onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => LabelPrintScreen(
-                                  initialProduct: product,
-                                  initialVariant: v,
-                                ),
-                              ),
+                            AppNavigator.toLabelPrint(
+                              context: context,
+                              initialProduct: product,
+                              initialVariant: v,
                             );
                           },
                         ),
