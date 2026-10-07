@@ -870,19 +870,25 @@ class _LabelPrintScreenState extends State<LabelPrintScreen> {
                   Checkbox(
                     value: item.isSelected,
                     activeColor: AppColors.primary,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
                     onChanged: (val) {
                       setState(() {
                         _items[index] = item.copyWith(isSelected: val ?? false);
                       });
                     },
                   ),
+                  const SizedBox(width: 8),
 
                   // 2. Size & Color Badges
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -899,12 +905,10 @@ class _LabelPrintScreenState extends State<LabelPrintScreen> {
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 6),
                             Text(
                               v.color,
                               style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                             ),
-                            const SizedBox(width: 8),
                             // Low stock badge
                             if (v.isOutOfStock)
                               _buildStockBadge('Out of stock', AppColors.error)
@@ -917,15 +921,19 @@ class _LabelPrintScreenState extends State<LabelPrintScreen> {
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            Text(
-                              v.sku.isNotEmpty ? v.sku : 'SKU: -',
-                              style: TextStyle(
-                                fontFamily: 'monospace',
-                                fontSize: 11,
-                                color: Colors.grey.shade600,
+                            Expanded(
+                              child: Text(
+                                v.sku.isNotEmpty ? v.sku : 'SKU: -',
+                                style: TextStyle(
+                                  fontFamily: 'monospace',
+                                  fontSize: 11,
+                                  color: Colors.grey.shade600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 8),
                             Text(
                               'Rs. ${(item.effectivePrice).toStringAsFixed(2)}',
                               style: const TextStyle(
@@ -938,6 +946,7 @@ class _LabelPrintScreenState extends State<LabelPrintScreen> {
                       ],
                     ),
                   ),
+                  const SizedBox(width: 8),
 
                   // 3. Quantity Stepper
                   Row(
@@ -945,10 +954,13 @@ class _LabelPrintScreenState extends State<LabelPrintScreen> {
                     children: [
                       IconButton(
                         icon: const Icon(Icons.remove_circle_outline_rounded, size: 20),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                        visualDensity: VisualDensity.compact,
                         onPressed: item.quantity > 1 ? () => _updateQuantity(index, -1) : null,
                       ),
                       Container(
-                        width: 44,
+                        width: 32,
                         alignment: Alignment.center,
                         child: Text(
                           '${item.quantity}',
@@ -957,13 +969,19 @@ class _LabelPrintScreenState extends State<LabelPrintScreen> {
                       ),
                       IconButton(
                         icon: const Icon(Icons.add_circle_outline_rounded, size: 20),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                        visualDensity: VisualDensity.compact,
                         onPressed: () => _updateQuantity(index, 1),
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 4),
                       // Quick Print 1 on this row
                       IconButton(
                         tooltip: 'Print 1 Label for this variant',
                         icon: const Icon(Icons.print_outlined, size: 20, color: AppColors.primary),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                        visualDensity: VisualDensity.compact,
                         onPressed: () async {
                           setState(() => _isPrinting = true);
                           final result = await _printerService.printSingleLabel(
@@ -1106,9 +1124,13 @@ class _LabelPrintScreenState extends State<LabelPrintScreen> {
               ? () => setState(() => _previewIndex--)
               : null,
         ),
-        Text(
-          'Sticker ${_previewIndex + 1} of ${selected.length} (${selected[_previewIndex].variant.displayName})',
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+        Flexible(
+          child: Text(
+            'Sticker ${_previewIndex + 1} of ${selected.length} (${selected[_previewIndex].variant.displayName})',
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+          ),
         ),
         IconButton(
           icon: const Icon(Icons.chevron_right_rounded),

@@ -96,6 +96,40 @@ void main() {
       expect(AppNavigator.navigatorKey, isNotNull);
       expect(AppNavigator.navigatorKey, isA<GlobalKey<NavigatorState>>());
     });
+
+    testWidgets('AppNavigator typed pushNamed does not throw type cast error with onGenerateRoute', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          navigatorKey: AppNavigator.navigatorKey,
+          onGenerateRoute: (settings) {
+            if (settings.name == '/test') {
+              return MaterialPageRoute<dynamic>(
+                builder: (context) => Scaffold(
+                  body: ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    child: const Text('Pop True'),
+                  ),
+                ),
+              );
+            }
+            return MaterialPageRoute<dynamic>(
+              builder: (context) => const Scaffold(body: Text('Home')),
+            );
+          },
+          home: const Scaffold(body: Text('Home')),
+        ),
+      );
+
+      final future = AppNavigator.pushNamed<bool>('/test');
+      await tester.pumpAndSettle();
+      expect(find.text('Pop True'), findsOneWidget);
+
+      await tester.tap(find.text('Pop True'));
+      await tester.pumpAndSettle();
+
+      final result = await future;
+      expect(result, isTrue);
+    });
   });
 
   group('Clothing Retail Variant & Stock Model Architecture Tests', () {

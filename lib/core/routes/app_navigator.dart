@@ -21,10 +21,10 @@ class AppNavigator {
     BuildContext? context,
     Object? arguments,
   }) {
-    if (context != null) {
-      return Navigator.of(context).pushNamed<T>(routeName, arguments: arguments);
-    }
-    return _state?.pushNamed<T>(routeName, arguments: arguments) ?? Future.value(null);
+    final navFuture = context != null
+        ? Navigator.of(context).pushNamed(routeName, arguments: arguments)
+        : (_state?.pushNamed(routeName, arguments: arguments) ?? Future.value(null));
+    return navFuture.then((result) => result is T ? result : null);
   }
 
   static Future<T?> pushReplacementNamed<T extends Object?, TO extends Object?>(
@@ -33,19 +33,19 @@ class AppNavigator {
     Object? arguments,
     TO? result,
   }) {
-    if (context != null) {
-      return Navigator.of(context).pushReplacementNamed<T, TO>(
-        routeName,
-        arguments: arguments,
-        result: result,
-      );
-    }
-    return _state?.pushReplacementNamed<T, TO>(
-          routeName,
-          arguments: arguments,
-          result: result,
-        ) ??
-        Future.value(null);
+    final navFuture = context != null
+        ? Navigator.of(context).pushReplacementNamed(
+            routeName,
+            arguments: arguments,
+            result: result,
+          )
+        : (_state?.pushReplacementNamed(
+            routeName,
+            arguments: arguments,
+            result: result,
+          ) ??
+          Future.value(null));
+    return navFuture.then((res) => res is T ? res : null);
   }
 
   static Future<T?> pushNamedAndRemoveUntil<T extends Object?>(
@@ -55,19 +55,19 @@ class AppNavigator {
     bool Function(Route<dynamic>)? predicate,
   }) {
     final condition = predicate ?? (route) => false;
-    if (context != null) {
-      return Navigator.of(context).pushNamedAndRemoveUntil<T>(
-        routeName,
-        condition,
-        arguments: arguments,
-      );
-    }
-    return _state?.pushNamedAndRemoveUntil<T>(
-          routeName,
-          condition,
-          arguments: arguments,
-        ) ??
-        Future.value(null);
+    final navFuture = context != null
+        ? Navigator.of(context).pushNamedAndRemoveUntil(
+            routeName,
+            condition,
+            arguments: arguments,
+          )
+        : (_state?.pushNamedAndRemoveUntil(
+            routeName,
+            condition,
+            arguments: arguments,
+          ) ??
+          Future.value(null));
+    return navFuture.then((res) => res is T ? res : null);
   }
 
   static void pop<T extends Object?>({BuildContext? context, T? result}) {
@@ -202,8 +202,8 @@ class AppNavigator {
     return pushNamed(AppRoutes.customers, context: context);
   }
 
-  static Future<bool?> toAddCustomer({BuildContext? context, String? initialMobile}) {
-    return pushNamed<bool>(
+  static Future<dynamic> toAddCustomer({BuildContext? context, String? initialMobile}) {
+    return pushNamed(
       AppRoutes.addCustomer,
       context: context,
       arguments: initialMobile,

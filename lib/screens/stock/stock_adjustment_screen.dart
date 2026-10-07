@@ -246,7 +246,7 @@ class _StockAdjustmentScreenState extends State<StockAdjustmentScreen> {
             backgroundColor: AppColors.success,
           ),
         );
-        Navigator.of(context).pop();
+        Navigator.of(context).pop(true);
       }
     }
   }

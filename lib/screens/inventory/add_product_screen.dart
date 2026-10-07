@@ -219,7 +219,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
           backgroundColor: AppColors.success,
         ),
       );
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(true);
     }
   }
 
