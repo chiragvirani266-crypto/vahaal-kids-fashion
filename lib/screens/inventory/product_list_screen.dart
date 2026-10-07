@@ -74,23 +74,29 @@ class _ProductListScreenState extends State<ProductListScreen> {
                   child: const Icon(Icons.inventory_2_rounded, color: AppColors.primary, size: 20),
                 ),
                 const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Products & Sizes Catalog',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                    Text(
-                      '${provider.products.length} products • 0–12Y Kids Wear',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Products & Sizes Catalog',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                  ],
+                      Text(
+                        '${provider.products.length} products • 0–12Y Kids Wear',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 8),
                 // View Mode Switcher on Desktop
                 if (isDesktop) ...[
                   SegmentedButton<bool>(
@@ -108,51 +114,67 @@ class _ProductListScreenState extends State<ProductListScreen> {
                     ],
                     selected: {_isTableView},
                     onSelectionChanged: (set) => setState(() => _isTableView = set.first),
-                    style: ButtonStyle(
+                    style: const ButtonStyle(
                       visualDensity: VisualDensity.compact,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                   ),
                   const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.qr_code_2_rounded),
+                    tooltip: 'Print Barcode Labels',
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const LabelPrintScreen()),
+                      );
+                    },
+                  ),
                 ],
-                IconButton(
-                  icon: const Icon(Icons.qr_code_2_rounded),
-                  tooltip: 'Print Barcode Labels',
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const LabelPrintScreen()),
-                    );
-                  },
-                ),
                 IconButton(
                   icon: const Icon(Icons.refresh_rounded),
                   tooltip: 'Refresh',
                   onPressed: () => provider.loadProducts(refresh: true),
                 ),
-                IconButton(
-                  icon: Icon(
-                    provider.includeInactive ? Icons.visibility_rounded : Icons.visibility_off_outlined,
-                    color: provider.includeInactive ? AppColors.secondary : null,
+                if (isDesktop)
+                  IconButton(
+                    icon: Icon(
+                      provider.includeInactive ? Icons.visibility_rounded : Icons.visibility_off_outlined,
+                      color: provider.includeInactive ? AppColors.secondary : null,
+                    ),
+                    tooltip: provider.includeInactive ? 'Showing Inactive Items' : 'Show Inactive Items',
+                    onPressed: () => provider.setIncludeInactive(!provider.includeInactive),
                   ),
-                  tooltip: provider.includeInactive ? 'Showing Inactive Items' : 'Show Inactive Items',
-                  onPressed: () => provider.setIncludeInactive(!provider.includeInactive),
-                ),
                 const SizedBox(width: 8),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const AddProductScreen()),
-                    );
-                  },
-                  icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('New Product'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                if (isDesktop)
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const AddProductScreen()),
+                      );
+                    },
+                    icon: const Icon(Icons.add_rounded, size: 18),
+                    label: const Text('New Product'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                  )
+                else
+                  IconButton.filled(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const AddProductScreen()),
+                      );
+                    },
+                    icon: const Icon(Icons.add_rounded, size: 18),
+                    tooltip: 'New Product',
+                    style: IconButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                    ),
                   ),
-                ),
               ],
             ),
           ),
@@ -349,7 +371,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
     );
 
     if (widget.isEmbedded) {
-      return Container(
+      return Material(
         color: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
         child: content,
       );
@@ -364,35 +386,73 @@ class _ProductListScreenState extends State<ProductListScreen> {
         ),
         actions: [
           // View mode toggle on desktop
-          if (isDesktop)
+          if (isDesktop) ...[
             IconButton(
               icon: Icon(_isTableView ? Icons.grid_view_rounded : Icons.table_chart_rounded),
               tooltip: _isTableView ? 'Switch to Grid Cards' : 'Switch to Data Table',
               onPressed: () => setState(() => _isTableView = !_isTableView),
             ),
-          IconButton(
-            icon: const Icon(Icons.qr_code_2_rounded),
-            tooltip: 'Print Barcode Labels',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const LabelPrintScreen()),
-              );
-            },
-          ),
+            IconButton(
+              icon: const Icon(Icons.qr_code_2_rounded),
+              tooltip: 'Print Barcode Labels',
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const LabelPrintScreen()),
+                );
+              },
+            ),
+            IconButton(
+              icon: Icon(
+                provider.includeInactive ? Icons.visibility_rounded : Icons.visibility_off_outlined,
+                color: provider.includeInactive ? AppColors.secondary : null,
+              ),
+              tooltip: provider.includeInactive ? 'Showing Inactive Items' : 'Show Inactive Items',
+              onPressed: () => provider.setIncludeInactive(!provider.includeInactive),
+            ),
+          ] else
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert_rounded),
+              onSelected: (val) {
+                if (val == 'labels') {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const LabelPrintScreen()),
+                  );
+                } else if (val == 'inactive') {
+                  provider.setIncludeInactive(!provider.includeInactive);
+                }
+              },
+              itemBuilder: (_) => [
+                const PopupMenuItem(
+                  value: 'labels',
+                  child: Row(
+                    children: [
+                      Icon(Icons.qr_code_2_rounded, size: 20),
+                      SizedBox(width: 8),
+                      Text('Print Labels'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'inactive',
+                  child: Row(
+                    children: [
+                      Icon(
+                        provider.includeInactive ? Icons.visibility_rounded : Icons.visibility_off_outlined,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(provider.includeInactive ? 'Hide Inactive' : 'Show Inactive'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             tooltip: 'Refresh',
             onPressed: () => provider.loadProducts(refresh: true),
           ),
-          IconButton(
-            icon: Icon(
-              provider.includeInactive ? Icons.visibility_rounded : Icons.visibility_off_outlined,
-              color: provider.includeInactive ? AppColors.secondary : null,
-            ),
-            tooltip: provider.includeInactive ? 'Showing Inactive Items' : 'Show Inactive Items',
-            onPressed: () => provider.setIncludeInactive(!provider.includeInactive),
-          ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -629,7 +689,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final product = products[index];
-        return _ProductCard(product: product);
+        return _ProductCard(product: product, isGrid: false);
       },
     );
   }
@@ -646,7 +706,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
       itemCount: products.length,
       itemBuilder: (context, index) {
         final product = products[index];
-        return _ProductCard(product: product);
+        return _ProductCard(product: product, isGrid: true);
       },
     );
   }
@@ -654,8 +714,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
 class _ProductCard extends StatelessWidget {
   final Product product;
+  final bool isGrid;
 
-  const _ProductCard({required this.product});
+  const _ProductCard({
+    required this.product,
+    this.isGrid = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -674,208 +738,228 @@ class _ProductCard extends StatelessWidget {
       stockText = '${product.totalStock} in stock';
     }
 
-    return InkWell(
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => ProductDetailsScreen(productId: product.id!),
-          ),
-        );
-      },
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.cardDark : AppColors.cardLight,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final hasBoundedHeight = constraints.hasBoundedHeight;
+        final shouldUseSpacer = isGrid && hasBoundedHeight;
+
+        return InkWell(
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => ProductDetailsScreen(productId: product.id!),
+              ),
+            );
+          },
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isDark ? AppColors.borderDark : AppColors.borderLight,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(8),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Top Row: Category tag, Gender tag, Active badge
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withAlpha(25),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    product.category,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
-                  ),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.cardDark : AppColors.cardLight,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDark ? AppColors.borderDark : AppColors.borderLight,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(8),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
                 ),
-                const SizedBox(width: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.surfaceDark : AppColors.backgroundLight,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    product.gender,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                if (!product.isActive)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: AppColors.errorBg,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Text(
-                      'INACTIVE',
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.error,
-                      ),
-                    ),
-                  ),
               ],
             ),
-            const SizedBox(height: 10),
-
-            // Product Name & SKU
-            Text(
-              product.productName,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimaryLight,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              'SKU: ${product.sku}${product.barcode != null ? ' • ${product.barcode}' : ''}',
-              style: TextStyle(
-                fontSize: 11,
-                color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
-              ),
-            ),
-            const SizedBox(height: 10),
-
-            // Variants Preview Chips
-            if (product.variants.isNotEmpty)
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: product.variants.take(4).map((v) {
-                    return Container(
-                      margin: const EdgeInsets.only(right: 6),
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            child: Column(
+              mainAxisSize: shouldUseSpacer ? MainAxisSize.max : MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Top Row: Category tag, Gender tag, Active badge
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: isDark ? AppColors.surfaceDark : const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(
-                          color: v.isLowStock
-                              ? AppColors.warning.withAlpha(100)
-                              : (isDark ? AppColors.borderDark : AppColors.borderLight),
-                        ),
+                        color: AppColors.primary.withAlpha(25),
+                        borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        v.displayName,
-                        style: TextStyle(
+                        product.category,
+                        style: const TextStyle(
                           fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                          color: v.isLowStock ? AppColors.warning : null,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
                         ),
                       ),
-                    );
-                  }).toList()
-                    ..addAll(
-                      product.variants.length > 4
-                          ? [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                child: Text(
-                                  '+${product.variants.length - 4} more',
-                                  style: const TextStyle(fontSize: 10, color: AppColors.textSecondaryLight),
-                                ),
-                              ),
-                            ]
-                          : [],
                     ),
-                ),
-              ),
-
-            const Spacer(),
-            const Divider(height: 16),
-
-            // Bottom Row: Price & Stock Status
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${AppConstants.currencySymbol}${product.sellingPrice.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.surfaceDark : AppColors.backgroundLight,
+                        borderRadius: BorderRadius.circular(6),
                       ),
-                    ),
-                    if (product.purchasePrice > 0)
-                      Text(
-                        'Cost: ${AppConstants.currencySymbol}${product.purchasePrice.toStringAsFixed(2)}',
+                      child: Text(
+                        product.gender,
                         style: TextStyle(
                           fontSize: 10,
-                          color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    if (!product.isActive)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.errorBg,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'INACTIVE',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.error,
+                          ),
                         ),
                       ),
                   ],
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: stockColor.withAlpha(25),
-                    borderRadius: BorderRadius.circular(8),
+                const SizedBox(height: 10),
+
+                // Product Name & SKU
+                Text(
+                  product.productName,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimaryLight,
                   ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.circle, size: 6, color: stockColor),
-                      const SizedBox(width: 5),
-                      Text(
-                        stockText,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: stockColor,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'SKU: ${product.sku}${product.barcode != null ? ' • ${product.barcode}' : ''}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // Variants Preview Chips
+                if (product.variants.isNotEmpty)
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: product.variants.take(4).map((v) {
+                        return Container(
+                          margin: const EdgeInsets.only(right: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.surfaceDark : const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(
+                              color: v.isLowStock
+                                  ? AppColors.warning.withAlpha(100)
+                                  : (isDark ? AppColors.borderDark : AppColors.borderLight),
+                            ),
+                          ),
+                          child: Text(
+                            v.displayName,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                              color: v.isLowStock ? AppColors.warning : null,
+                            ),
+                          ),
+                        );
+                      }).toList()
+                        ..addAll(
+                          product.variants.length > 4
+                              ? [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    child: Text(
+                                      '+${product.variants.length - 4} more',
+                                      style: const TextStyle(fontSize: 10, color: AppColors.textSecondaryLight),
+                                    ),
+                                  ),
+                                ]
+                              : [],
                         ),
-                      ),
-                    ],
+                    ),
                   ),
+
+                if (shouldUseSpacer)
+                  const Spacer()
+                else
+                  const SizedBox(height: 12),
+
+                const Divider(height: 16),
+
+                // Bottom Row: Price & Stock Status
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${AppConstants.currencySymbol}${product.sellingPrice.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (product.purchasePrice > 0)
+                            Text(
+                              'Cost: ${AppConstants.currencySymbol}${product.purchasePrice.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: stockColor.withAlpha(25),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.circle, size: 6, color: stockColor),
+                          const SizedBox(width: 5),
+                          Text(
+                            stockText,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: stockColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

@@ -4,7 +4,7 @@ import '../../models/product_model.dart';
 import '../../models/product_variant_model.dart';
 import 'printer_models.dart';
 
-/// Core Abstraction for Cross-Platform POS Printing & Barcode Label Generation
+/// Core Abstraction for Cross-Platform Thermal Printing & Barcode Label Generation
 abstract class PrinterService {
   /// Prints a customer sales invoice / bill
   Future<PrintResult> printBill(
@@ -34,6 +34,6 @@ abstract class PrinterService {
   /// Checks whether a printer target is reachable
   Future<bool> isPrinterAvailable({PrinterConfig? config});
 
-  /// Discovers network / local POS printers
+  /// Discovers network / local thermal printers
   Future<List<String>> getDiscoveredPrinters();
 }

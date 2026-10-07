@@ -132,6 +132,6 @@ class IosPrinterService implements PrinterService {
 
   @override
   Future<List<String>> getDiscoveredPrinters() async {
-    return ['AirPrint Compatible POS', 'Wi-Fi Thermal Printer (9100)'];
+    return ['AirPrint Receipt Printer', 'Wi-Fi Thermal Printer (9100)'];
   }
 }

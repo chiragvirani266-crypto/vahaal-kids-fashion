@@ -87,6 +87,6 @@ class FallbackPrinterService implements PrinterService {
 
   @override
   Future<List<String>> getDiscoveredPrinters() async {
-    return ['Virtual Thermal POS Emulator', 'System Preview'];
+    return ['Virtual Thermal Receipt Emulator', 'System Preview'];
   }
 }

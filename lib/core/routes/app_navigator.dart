@@ -97,10 +97,12 @@ class AppNavigator {
     return pushNamedAndRemoveUntil(AppRoutes.dashboard, context: context);
   }
 
-  // 2. POS / New Bill
-  static Future<void> toPos({BuildContext? context}) {
-    return pushNamed(AppRoutes.pos, context: context);
+  // 2. Billing / New Bill
+  static Future<void> toBilling({BuildContext? context}) {
+    return pushNamed(AppRoutes.billing, context: context);
   }
+
+  static Future<void> toPos({BuildContext? context}) => toBilling(context: context);
 
   // 3. Bills
   static Future<void> toBills({BuildContext? context}) {

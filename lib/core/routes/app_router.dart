@@ -46,9 +46,10 @@ class AppRouter {
         return _buildRoute(const DashboardScreen(), settings);
 
       // -----------------------------------------------------------------------
-      // POS / NEW BILL
+      // BILLING / NEW BILL
       // -----------------------------------------------------------------------
-      case AppRoutes.pos:
+      case AppRoutes.billing:
+      case '/pos':
         return _buildRoute(const BillingScreen(), settings);
 
       // -----------------------------------------------------------------------

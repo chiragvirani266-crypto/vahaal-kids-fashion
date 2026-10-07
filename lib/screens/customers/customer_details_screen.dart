@@ -217,9 +217,9 @@ class _CustomerDetailsScreenState extends State<CustomerDetailsScreen> {
                         context.read<BillProvider>().setCustomer(customer);
                         AppSnackbar.showSuccess(
                           context,
-                          'Selected ${customer.name} for POS checkout (Discount memory: ${customer.lastDiscount > 0 ? "₹${customer.lastDiscount.toStringAsFixed(2)}" : "None"}).',
+                          'Selected ${customer.name} for billing (Discount memory: ${customer.lastDiscount > 0 ? "₹${customer.lastDiscount.toStringAsFixed(2)}" : "None"}).',
                         );
-                        AppNavigator.toPos(context: context);
+                        AppNavigator.toBilling(context: context);
                       },
                       icon: const Icon(Icons.point_of_sale_rounded, size: 18),
                       label: const Text(

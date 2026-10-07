@@ -5,7 +5,7 @@ import '../../models/product_variant_model.dart';
 /// Supported receipt paper widths
 enum ReceiptPaperWidth {
   mm58(32, 384, '58mm (Small Thermal)'),
-  mm80(48, 576, '80mm (Standard POS)');
+  mm80(48, 576, '80mm (Standard Receipt)');
 
   final int columns;
   final int dotsPerLine;
@@ -119,7 +119,7 @@ enum LabelSizePreset {
   compact38x25(38.0, 25.0, '38mm × 25mm (Compact 1.5"×1")', 'Accessories, jewelry & small items'),
   large50x38(50.0, 38.0, '50mm × 38mm (Large 2"×1.5")', 'Detailed garment hang tag with size & care'),
   roll58mm(58.0, 35.0, '58mm Continuous Roll', 'Standard 2-inch thermal roll printer'),
-  roll80mm(80.0, 45.0, '80mm Continuous Roll', 'Standard 3-inch POS thermal printer'),
+  roll80mm(80.0, 45.0, '80mm Continuous Roll', 'Standard 3-inch thermal roll printer'),
   custom(50.0, 25.0, 'Custom Dimensions', 'User-defined width & height in mm');
 
   final double defaultWidthMm;

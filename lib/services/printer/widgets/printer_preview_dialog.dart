@@ -164,7 +164,7 @@ class _PrinterPreviewDialogState extends State<PrinterPreviewDialog> {
               Text(
                 widget.isReprint
                     ? 'Thermal Receipt (Reprint)'
-                    : (isLabelMode ? 'Barcode Label Print' : 'Thermal POS Print'),
+                    : (isLabelMode ? 'Barcode Label Print' : 'Thermal Receipt Print'),
                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ],
@@ -209,7 +209,7 @@ class _PrinterPreviewDialogState extends State<PrinterPreviewDialog> {
                             ),
                             alignment: Alignment.center,
                             child: Text(
-                              '80mm Standard POS',
+                              '80mm Standard Thermal',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,

@@ -170,6 +170,6 @@ class WindowsPrinterService implements PrinterService {
         }
       } catch (_) {}
     }
-    return ['Default Windows Receipt Printer', 'POS-80 Thermal USB', 'POS-58 Thermal USB'];
+    return ['Default Windows Receipt Printer', 'Receipt-80 Thermal USB', 'Receipt-58 Thermal USB'];
   }
 }

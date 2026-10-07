@@ -134,6 +134,6 @@ class AndroidPrinterService implements PrinterService {
 
   @override
   Future<List<String>> getDiscoveredPrinters() async {
-    return ['Network Thermal POS (9100)', 'Android System Print Spooler'];
+    return ['Network Thermal Printer (9100)', 'Android System Print Spooler'];
   }
 }

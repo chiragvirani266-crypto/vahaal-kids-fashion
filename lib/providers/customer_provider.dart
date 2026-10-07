@@ -121,7 +121,7 @@ class CustomerProvider extends ChangeNotifier {
     }
   }
 
-  /// Fast lookup by phone for POS / checkout
+  /// Fast lookup by phone for billing / checkout
   Future<Customer?> searchByMobile(String mobile) async {
     try {
       return await _repository.getCustomerByMobile(mobile);

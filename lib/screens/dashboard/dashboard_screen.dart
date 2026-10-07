@@ -220,7 +220,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     final destinationTitles = [
       'Store Workstation Overview',
-      'POS Checkout Terminal',
+      'Billing Terminal',
       'Products Catalog & Variants',
       'Inventory & Stock Management',
       'Invoices & Sales History',
@@ -325,7 +325,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ),
                                 const SizedBox(width: 5),
                                 Text(
-                                  'POS Workstation',
+                                  'Billing Workstation',
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w500,
@@ -404,7 +404,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       _SidebarNavItem(
                         icon: Icons.point_of_sale_rounded,
-                        label: 'POS Billing',
+                        label: 'Billing',
                         isSelected: _selectedDesktopIndex == 1,
                         badgeCount: billProvider.totalUniqueItems > 0
                             ? billProvider.totalUniqueItems
@@ -597,7 +597,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       const SizedBox(width: 12),
 
-                      // Live Cart Shortcut Pill (if items exist in POS)
+                      // Live Cart Shortcut Pill (if items exist in cart)
                       if (billProvider.totalUniqueItems > 0 && _selectedDesktopIndex != 1) ...[
                         InkWell(
                           onTap: () => _onSelectDesktopDestination(1),
@@ -654,7 +654,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       // 0: Store Overview & KPIs
                       _buildOverviewContent(context, authProvider, dashboardProvider, true, size),
-                      // 1: POS Billing Terminal
+                      // 1: Billing Terminal
                       const BillingScreen(isEmbedded: true),
                       // 2: Products Catalog & Variants
                       const ProductListScreen(isEmbedded: true),
@@ -702,7 +702,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     final mobileTitles = [
       AppConstants.appName,
-      'POS Checkout',
+      'Billing',
       'Product Catalog',
       'Sales Invoices',
     ];

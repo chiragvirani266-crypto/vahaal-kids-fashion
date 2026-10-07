@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import '../printer_models.dart';
 
-/// Pure Dart ESC/POS Command Generator for POS Thermal Printers
+/// Pure Dart ESC/POS Command Generator for Thermal Printers
 class EscPosBuilder {
   final List<int> _bytes = [];
   final ReceiptPaperWidth paperWidth;

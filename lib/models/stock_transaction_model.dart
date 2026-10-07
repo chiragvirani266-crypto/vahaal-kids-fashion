@@ -44,7 +44,7 @@ class StockTransaction {
       case 'purchase_in':
         return 'Stock In';
       case 'sale':
-        return 'POS Sale';
+        return 'Store Sale';
       case 'return':
         return 'Customer Return';
       case 'damage':

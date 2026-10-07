@@ -460,7 +460,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                           },
                         ),
                         IconButton(
-                          tooltip: 'Add to POS Cart',
+                          tooltip: 'Add to Cart',
                           icon: const Icon(Icons.add_shopping_cart_rounded, size: 20, color: AppColors.primary),
                           onPressed: () {
                             context.read<BillProvider>().addItem(
@@ -470,7 +470,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                             );
                             AppSnackbar.showSuccess(
                               context,
-                              'Added ${product.productName} (${v.displayName}) to POS Cart',
+                              'Added ${product.productName} (${v.displayName}) to Cart',
                             );
                           },
                         ),

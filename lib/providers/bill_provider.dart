@@ -19,14 +19,14 @@ class BillProvider extends ChangeNotifier {
     loadPreviewBillNumber();
   }
 
-  // POS State Variables
+  // Billing State Variables
   List<BillItem> _cartItems = [];
   Customer? _selectedCustomer;
   DiscountType _discountType = DiscountType.fixed;
   double _discountValue = 0.0;
   String _paymentMethod = 'cash'; // 'cash' | 'upi' | 'card' | 'other'
   String _notes = '';
-  String _previewBillNumber = 'VKF-POS';
+  String _previewBillNumber = 'VKF-BILL';
   bool _isLoading = false;
   String? _errorMessage;
   Bill? _lastCompletedBill;
@@ -46,7 +46,7 @@ class BillProvider extends ChangeNotifier {
   DateTimeRange? _customDateRange;
   String _paymentFilter = 'All';
 
-  // Getters - POS
+  // Getters - Billing
   List<BillItem> get cartItems => List.unmodifiable(_cartItems);
   Customer? get selectedCustomer => _selectedCustomer;
   DiscountType get discountType => _discountType;
@@ -114,7 +114,7 @@ class BillProvider extends ChangeNotifier {
       _previewBillNumber = await _repository.generateNextBillNumber();
       notifyListeners();
     } catch (_) {
-      _previewBillNumber = 'VKF-POS';
+      _previewBillNumber = 'VKF-BILL';
     }
   }
 
@@ -236,7 +236,7 @@ class BillProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Customer Management in POS
+  // Customer Management in Billing
   void setCustomer(Customer? customer) {
     _selectedCustomer = customer;
     if (customer != null && customer.lastDiscount > 0) {

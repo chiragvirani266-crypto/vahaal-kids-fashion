@@ -24,7 +24,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late TextEditingController _storeGstinController;
   late TextEditingController _footerNoteController;
 
-  // POS & Hardware Preferences
+  // Billing & Hardware Preferences
   String _selectedReceiptWidth = '80mm'; // '58mm' | '80mm'
   bool _showPrintPreview = true;
   bool _autoShareWhatsApp = false;
@@ -53,7 +53,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _handleSaveSettings() async {
-    AppSnackbar.showSuccess(context, 'Store settings & POS preferences saved successfully!');
+    AppSnackbar.showSuccess(context, 'Store settings & hardware preferences saved successfully!');
   }
 
   Future<void> _handleLogout(BuildContext context) async {
@@ -239,10 +239,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Section 2: Hardware & POS Receipt Printing
+              // Section 2: Hardware & Receipt Printing
               _buildSectionCard(
-                title: 'POS Hardware & Thermal Receipt Defaults',
-                subtitle: 'Configure ESC/POS printer roll sizes, preview sheets, and automation.',
+                title: 'Hardware & Thermal Receipt Defaults',
+                subtitle: 'Configure thermal printer roll sizes, preview sheets, and automation.',
                 icon: Icons.print_rounded,
                 isDark: isDark,
                 children: [

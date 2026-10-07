@@ -7,7 +7,8 @@ class AppRoutes {
   static const String login = '/login';
   static const String dashboard = '/dashboard';
 
-  // POS
+  // Billing
+  static const String billing = '/billing';
   static const String pos = '/pos';
 
   // Bills

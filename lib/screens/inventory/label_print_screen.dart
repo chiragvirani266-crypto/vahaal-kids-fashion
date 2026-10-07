@@ -1022,7 +1022,7 @@ class _LabelPrintScreenState extends State<LabelPrintScreen> {
           children: [
             // View Mode Toggle
             IconButton(
-              tooltip: _isAsciiPreview ? 'Switch to Visual Sticker' : 'Switch to Monospaced ESC/POS Text',
+              tooltip: _isAsciiPreview ? 'Switch to Visual Sticker' : 'Switch to Monospaced Thermal Text',
               icon: Icon(_isAsciiPreview ? Icons.image_rounded : Icons.code_rounded),
               onPressed: () => setState(() => _isAsciiPreview = !_isAsciiPreview),
             ),

@@ -235,7 +235,7 @@ class _BillingScreenState extends State<BillingScreen> {
         color: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
         child: Column(
           children: [
-            // Workstation POS Sub-header Bar
+            // Workstation Billing Sub-header Bar
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
@@ -374,7 +374,7 @@ class _BillingScreenState extends State<BillingScreen> {
   }
 
   // ==========================================
-  // DESKTOP LAYOUT (2-COLUMN SPLIT POS VIEW)
+  // DESKTOP LAYOUT (2-COLUMN SPLIT BILLING VIEW)
   // ==========================================
   Widget _buildDesktopLayout() {
     return Row(
@@ -626,7 +626,7 @@ class _BillingScreenState extends State<BillingScreen> {
     );
   }
 
-  // Individual Product Card in POS
+  // Individual Product Card in Billing Catalog
   Widget _buildProductCard(Product product) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final totalStock = product.totalStock;
