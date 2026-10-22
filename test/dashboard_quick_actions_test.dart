@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -204,4 +203,55 @@ void main() {
     expect(find.text('Low Stock Replenishment'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('Dashboard Sales & Store Overview excludes analytics screen functions (This Month, This Year, Lifetime, and Charts Banner)', (tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final authProvider = AuthProvider(authService: MockAuthService());
+    final dashboardProvider = DashboardProvider(repository: MockDashboardRepository());
+    final billProvider = BillProvider(repository: MockBillRepository());
+    final productProvider = ProductProvider(repository: MockProductRepo());
+    final stockProvider = StockProvider(repository: MockStockRepo());
+    final customerProvider = CustomerProvider(repository: MockCustomerRepo());
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
+          ChangeNotifierProvider<DashboardProvider>.value(value: dashboardProvider),
+          ChangeNotifierProvider<BillProvider>.value(value: billProvider),
+          ChangeNotifierProvider<ProductProvider>.value(value: productProvider),
+          ChangeNotifierProvider<StockProvider>.value(value: stockProvider),
+          ChangeNotifierProvider<CustomerProvider>.value(value: customerProvider),
+        ],
+        child: const MaterialApp(
+          home: DashboardScreen(),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    // Verify real-time operational overview metrics are present
+    expect(find.text("Today's Sales"), findsOneWidget);
+    expect(find.text("Today's Bills"), findsOneWidget);
+    expect(find.text('Total Products'), findsOneWidget);
+    expect(find.text('Low Stock Products'), findsOneWidget);
+    expect(find.text('Total Customers'), findsOneWidget);
+
+    // Verify historical analytics cards are removed from dashboard
+    expect(find.text('This Month Sales'), findsNothing);
+    expect(find.text('This Year Sales'), findsNothing);
+    expect(find.text('Total Sales (Lifetime)'), findsNothing);
+
+    // Verify analytics banner/charts card is removed from dashboard
+    expect(find.text('Sales Trends & Interactive Charts'), findsNothing);
+    expect(find.text('Open Charts & Analytics'), findsNothing);
+  });
 }
+
