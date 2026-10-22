@@ -362,11 +362,15 @@ class _ProductListScreenState extends State<ProductListScreen> {
                       onRefresh: () => provider.loadProducts(refresh: true),
                       child: isDesktop
                           ? (_isTableView
-                              ? _buildDesktopTable(context, provider.filteredProducts, isDark)
-                              : _buildDesktopGrid(context, provider.filteredProducts))
-                          : _buildMobileList(context, provider.filteredProducts),
+                              ? _buildDesktopTable(context, provider.paginatedProducts, isDark)
+                              : _buildDesktopGrid(context, provider.paginatedProducts))
+                          : _buildMobileList(context, provider.paginatedProducts),
                     ),
         ),
+
+        // Bottom Pagination Controls
+        if (!provider.isLoading && provider.filteredProducts.isNotEmpty)
+          _buildPaginationBar(context, provider, isDark, isDesktop),
       ],
     );
 
@@ -476,7 +480,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   // ==========================================
   Widget _buildDesktopTable(BuildContext context, List<Product> products, bool isDark) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 80),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
       child: Container(
         decoration: BoxDecoration(
           color: isDark ? AppColors.surfaceDark : Colors.white,
@@ -684,7 +688,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
   Widget _buildMobileList(BuildContext context, List<Product> products) {
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
       itemCount: products.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
@@ -696,7 +700,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
   Widget _buildDesktopGrid(BuildContext context, List<Product> products) {
     return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 80),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
         maxCrossAxisExtent: 380,
         mainAxisExtent: 220,
@@ -708,6 +712,136 @@ class _ProductListScreenState extends State<ProductListScreen> {
         final product = products[index];
         return _ProductCard(product: product, isGrid: true);
       },
+    );
+  }
+
+  Widget _buildPaginationBar(
+    BuildContext context,
+    ProductProvider provider,
+    bool isDark,
+    bool isDesktop,
+  ) {
+    final startItem = provider.filteredProducts.isEmpty
+        ? 0
+        : (provider.currentPage - 1) * provider.pageSize + 1;
+    final endItem = ((provider.currentPage - 1) * provider.pageSize + provider.paginatedProducts.length);
+    final total = provider.totalFilteredCount;
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: isDesktop ? 20 : 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceDark : Colors.white,
+        border: Border(
+          top: BorderSide(
+            color: isDark ? AppColors.borderDark : AppColors.borderLight,
+          ),
+        ),
+      ),
+      child: isDesktop
+          ? Row(
+              children: [
+                Text(
+                  'Showing $startItem–$endItem of $total products',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Per page:',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    DropdownButton<int>(
+                      value: provider.pageSize,
+                      isDense: true,
+                      underline: const SizedBox(),
+                      items: const [
+                        DropdownMenuItem(value: 10, child: Text('10', style: TextStyle(fontSize: 12))),
+                        DropdownMenuItem(value: 20, child: Text('20', style: TextStyle(fontSize: 12))),
+                        DropdownMenuItem(value: 50, child: Text('50', style: TextStyle(fontSize: 12))),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) provider.setPageSize(val);
+                      },
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                Text(
+                  'Page ${provider.currentPage} of ${provider.totalPages}',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(width: 10),
+                IconButton(
+                  icon: const Icon(Icons.first_page_rounded, size: 18),
+                  tooltip: 'First Page',
+                  onPressed: provider.hasPreviousPage ? () => provider.setPage(1) : null,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.chevron_left_rounded, size: 18),
+                  tooltip: 'Previous Page',
+                  onPressed: provider.hasPreviousPage ? () => provider.previousPage() : null,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.chevron_right_rounded, size: 18),
+                  tooltip: 'Next Page',
+                  onPressed: provider.hasNextPage ? () => provider.nextPage() : null,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.last_page_rounded, size: 18),
+                  tooltip: 'Last Page',
+                  onPressed: provider.hasNextPage ? () => provider.setPage(provider.totalPages) : null,
+                ),
+              ],
+            )
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Page ${provider.currentPage}/${provider.totalPages} ($total)',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                  ),
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: provider.hasPreviousPage ? () => provider.previousPage() : null,
+                      icon: const Icon(Icons.chevron_left_rounded, size: 15),
+                      label: const Text('Prev', style: TextStyle(fontSize: 11)),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      onPressed: provider.hasNextPage ? () => provider.nextPage() : null,
+                      icon: const Text('Next', style: TextStyle(fontSize: 11)),
+                      label: const Icon(Icons.chevron_right_rounded, size: 15),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
     );
   }
 }

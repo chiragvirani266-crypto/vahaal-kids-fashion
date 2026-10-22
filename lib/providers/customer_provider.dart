@@ -22,6 +22,10 @@ class CustomerProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
 
+  // Pagination state
+  int _currentPage = 1;
+  int _pageSize = 20;
+
   CustomerProvider({required CustomerRepository repository})
       : _repository = repository;
 
@@ -34,6 +38,58 @@ class CustomerProvider extends ChangeNotifier {
   String get sortBy => _sortBy;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+
+  // Pagination getters
+  int get currentPage => _currentPage;
+  int get pageSize => _pageSize;
+  int get totalFilteredCount => _customers.length;
+
+  int get totalPages {
+    if (_customers.isEmpty) return 1;
+    return (_customers.length / _pageSize).ceil();
+  }
+
+  bool get hasNextPage => _currentPage < totalPages;
+  bool get hasPreviousPage => _currentPage > 1;
+
+  List<Customer> get paginatedCustomers {
+    if (_customers.isEmpty) return [];
+    final start = (_currentPage - 1) * _pageSize;
+    if (start >= _customers.length) {
+      final lastPageStart = ((totalPages - 1) * _pageSize).clamp(0, _customers.length);
+      return _customers.sublist(lastPageStart);
+    }
+    final end = (start + _pageSize) > _customers.length ? _customers.length : (start + _pageSize);
+    return _customers.sublist(start, end);
+  }
+
+  void setPage(int page) {
+    final clamped = page.clamp(1, totalPages);
+    if (clamped == _currentPage) return;
+    _currentPage = clamped;
+    notifyListeners();
+  }
+
+  void nextPage() {
+    if (hasNextPage) {
+      _currentPage++;
+      notifyListeners();
+    }
+  }
+
+  void previousPage() {
+    if (hasPreviousPage) {
+      _currentPage--;
+      notifyListeners();
+    }
+  }
+
+  void setPageSize(int size) {
+    if (size <= 0 || size == _pageSize) return;
+    _pageSize = size;
+    _currentPage = 1;
+    notifyListeners();
+  }
 
   int get totalCustomersCount => (_customerStats['totalCustomers'] as num?)?.toInt() ?? _customers.length;
   double get totalLifetimeSpend => (_customerStats['totalSpent'] as num?)?.toDouble() ?? 0.0;
@@ -55,6 +111,7 @@ class CustomerProvider extends ChangeNotifier {
 
       _customers = results[0] as List<Customer>;
       _customerStats = results[1] as Map<String, dynamic>;
+      _currentPage = 1;
       _errorMessage = null;
     } on AppException catch (e) {
       _errorMessage = e.message;
@@ -68,11 +125,13 @@ class CustomerProvider extends ChangeNotifier {
 
   void setSearchQuery(String query) {
     _searchQuery = query;
+    _currentPage = 1;
     _fetchFiltered();
   }
 
   void setSortBy(String sort) {
     _sortBy = sort;
+    _currentPage = 1;
     _fetchFiltered();
   }
 

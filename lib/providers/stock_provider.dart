@@ -28,6 +28,9 @@ class StockProvider extends ChangeNotifier {
 
   bool _isLoading = false;
   String? _errorMessage;
+  // Pagination state
+  int _currentPage = 1;
+  int _pageSize = 20;
 
   StockProvider({required StockRepository repository}) : _repository = repository;
 
@@ -36,6 +39,58 @@ class StockProvider extends ChangeNotifier {
   List<StockItem> get lowStockItems => _lowStockItems;
   List<StockTransaction> get transactions => _transactions;
   Map<String, dynamic> get overviewStats => _overviewStats;
+
+  // Pagination getters
+  int get currentPage => _currentPage;
+  int get pageSize => _pageSize;
+  int get totalFilteredCount => _stockItems.length;
+
+  int get totalPages {
+    if (_stockItems.isEmpty) return 1;
+    return (_stockItems.length / _pageSize).ceil();
+  }
+
+  bool get hasNextPage => _currentPage < totalPages;
+  bool get hasPreviousPage => _currentPage > 1;
+
+  List<StockItem> get paginatedStockItems {
+    if (_stockItems.isEmpty) return [];
+    final start = (_currentPage - 1) * _pageSize;
+    if (start >= _stockItems.length) {
+      final lastPageStart = ((totalPages - 1) * _pageSize).clamp(0, _stockItems.length);
+      return _stockItems.sublist(lastPageStart);
+    }
+    final end = (start + _pageSize) > _stockItems.length ? _stockItems.length : (start + _pageSize);
+    return _stockItems.sublist(start, end);
+  }
+
+  void setPage(int page) {
+    final clamped = page.clamp(1, totalPages);
+    if (clamped == _currentPage) return;
+    _currentPage = clamped;
+    notifyListeners();
+  }
+
+  void nextPage() {
+    if (hasNextPage) {
+      _currentPage++;
+      notifyListeners();
+    }
+  }
+
+  void previousPage() {
+    if (hasPreviousPage) {
+      _currentPage--;
+      notifyListeners();
+    }
+  }
+
+  void setPageSize(int size) {
+    if (size <= 0 || size == _pageSize) return;
+    _pageSize = size;
+    _currentPage = 1;
+    notifyListeners();
+  }
 
   String get selectedCategory => _selectedCategory;
   String get selectedSize => _selectedSize;
@@ -161,18 +216,21 @@ class StockProvider extends ChangeNotifier {
 
   void setSearchQuery(String query) {
     _searchQuery = query;
+    _currentPage = 1;
     loadStockItems();
   }
 
   void setCategory(String category) {
     if (_selectedCategory == category) return;
     _selectedCategory = category;
+    _currentPage = 1;
     loadStockItems();
   }
 
   void setSize(String size) {
     if (_selectedSize == size) return;
     _selectedSize = size;
+    _currentPage = 1;
     loadStockItems();
   }
 

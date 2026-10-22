@@ -19,6 +19,7 @@ class DashboardProvider extends ChangeNotifier {
 
   bool _isLoading = false;
   bool _isChartLoading = false;
+  bool _isOverviewLoaded = false;
   String? _errorMessage;
 
   // Getters
@@ -31,6 +32,7 @@ class DashboardProvider extends ChangeNotifier {
   DateTime get endDate => _endDate;
   bool get isLoading => _isLoading;
   bool get isChartLoading => _isChartLoading;
+  bool get isOverviewLoaded => _isOverviewLoaded;
   String? get errorMessage => _errorMessage;
 
   double get totalChartSales =>
@@ -51,11 +53,66 @@ class DashboardProvider extends ChangeNotifier {
     return maxVal > 0 ? maxVal : 10;
   }
 
-  /// Initial / full load of dashboard KPIs, chart points, top products, top customers
-  Future<void> loadDashboard({bool refresh = false}) async {
-    if (_chartPoints.isNotEmpty && !refresh && !_isLoading) return;
+  /// Fast load of store KPIs & overview metrics only (No heavy chart/product aggregations)
+  Future<void> loadOverview({bool refresh = false}) async {
+    if (_isOverviewLoaded && !refresh && !_isLoading) return;
 
     _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      _overview = await _repository.getDashboardOverview();
+      _isOverviewLoaded = true;
+      _errorMessage = null;
+    } catch (e) {
+      _errorMessage = e.toString().replaceAll('AppException: ', '').replaceAll('Exception: ', '');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// On-demand load of chart points and top products/customers for dedicated analytics screen
+  Future<void> loadAnalytics({bool refresh = false}) async {
+    if (_chartPoints.isNotEmpty && !refresh && !_isChartLoading) return;
+
+    _isChartLoading = true;
+    notifyListeners();
+
+    try {
+      final results = await Future.wait([
+        _repository.getSalesChartData(
+          startDate: _startDate,
+          endDate: _endDate,
+          grouping: _selectedGrouping,
+        ),
+        _repository.getTopSellingProducts(
+          limit: 5,
+          startDate: _startDate,
+          endDate: _endDate,
+        ),
+        _repository.getTopCustomers(limit: 5),
+      ]);
+
+      _chartPoints = results[0] as List<SalesChartPoint>;
+      _topSellingProducts = results[1] as List<TopSellingProduct>;
+      _topCustomers = results[2] as List<TopCustomer>;
+      _errorMessage = null;
+    } catch (e) {
+      _errorMessage = e.toString().replaceAll('AppException: ', '').replaceAll('Exception: ', '');
+    } finally {
+      _isChartLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Initial / full load of dashboard KPIs, chart points, top products, top customers
+  Future<void> loadDashboard({bool refresh = false}) async {
+    if (_isOverviewLoaded && _chartPoints.isNotEmpty && !refresh && !_isLoading && !_isChartLoading) return;
+
+    _isLoading = true;
+    _isChartLoading = true;
     _errorMessage = null;
     notifyListeners();
 
@@ -79,11 +136,13 @@ class DashboardProvider extends ChangeNotifier {
       _chartPoints = results[1] as List<SalesChartPoint>;
       _topSellingProducts = results[2] as List<TopSellingProduct>;
       _topCustomers = results[3] as List<TopCustomer>;
+      _isOverviewLoaded = true;
       _errorMessage = null;
     } catch (e) {
       _errorMessage = e.toString().replaceAll('AppException: ', '').replaceAll('Exception: ', '');
     } finally {
       _isLoading = false;
+      _isChartLoading = false;
       notifyListeners();
     }
   }

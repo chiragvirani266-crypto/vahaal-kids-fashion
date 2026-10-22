@@ -263,17 +263,61 @@ class _StockDashboardScreenState extends State<StockDashboardScreen> {
                         ),
                       ),
                     )
-                  else
+                  else ...[
                     ListView.separated(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      itemCount: provider.stockItems.length,
+                      itemCount: provider.paginatedStockItems.length,
                       separatorBuilder: (_, __) => const Divider(height: 16),
                       itemBuilder: (context, index) {
-                        final item = provider.stockItems[index];
+                        final item = provider.paginatedStockItems[index];
                         return _StockItemTile(item: item);
                       },
                     ),
+                    if (provider.totalPages > 1)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 14),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Showing Page ${provider.currentPage} of ${provider.totalPages} (${provider.totalFilteredCount} items)',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                              ),
+                            ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                OutlinedButton.icon(
+                                  onPressed: provider.hasPreviousPage ? () => provider.previousPage() : null,
+                                  icon: const Icon(Icons.chevron_left_rounded, size: 15),
+                                  label: const Text('Prev', style: TextStyle(fontSize: 11)),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    visualDensity: VisualDensity.compact,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                ElevatedButton.icon(
+                                  onPressed: provider.hasNextPage ? () => provider.nextPage() : null,
+                                  icon: const Text('Next', style: TextStyle(fontSize: 11)),
+                                  label: const Icon(Icons.chevron_right_rounded, size: 15),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primary,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    visualDensity: VisualDensity.compact,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
                 ],
               ),
             ),

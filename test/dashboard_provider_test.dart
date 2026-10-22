@@ -215,5 +215,25 @@ void main() {
       expect(provider.topCustomers.first.name, 'Priya Sharma');
       expect(provider.topCustomers.first.totalSpent, 12450.0);
     });
+
+    test('loadOverview populates overview metrics without loading heavy chart points or top items', () async {
+      await provider.loadOverview();
+
+      expect(provider.isOverviewLoaded, isTrue);
+      expect(provider.overview.todaySales, 2450.0);
+      expect(provider.overview.totalProductsCount, 45);
+      // Charts and top products remain empty to reduce dashboard load time
+      expect(provider.chartPoints, isEmpty);
+      expect(provider.topSellingProducts, isEmpty);
+      expect(provider.topCustomers, isEmpty);
+    });
+
+    test('loadAnalytics loads chart points and leaderboards on demand', () async {
+      await provider.loadAnalytics();
+
+      expect(provider.chartPoints.length, 4);
+      expect(provider.topSellingProducts.length, 2);
+      expect(provider.topCustomers.length, 2);
+    });
   });
 }

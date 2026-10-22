@@ -29,6 +29,10 @@ class ProductProvider extends ChangeNotifier {
   String? _errorMessage;
   Product? _selectedProduct;
 
+  // Pagination state
+  int _currentPage = 1;
+  int _pageSize = 20;
+
   ProductProvider({required ProductRepository repository})
       : _repository = repository;
 
@@ -44,6 +48,32 @@ class ProductProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   Product? get selectedProduct => _selectedProduct;
+
+  // Pagination getters
+  int get currentPage => _currentPage;
+  int get pageSize => _pageSize;
+  int get totalFilteredCount => filteredProducts.length;
+
+  int get totalPages {
+    final total = filteredProducts.length;
+    if (total == 0) return 1;
+    return (total / _pageSize).ceil();
+  }
+
+  bool get hasNextPage => _currentPage < totalPages;
+  bool get hasPreviousPage => _currentPage > 1;
+
+  List<Product> get paginatedProducts {
+    final list = filteredProducts;
+    if (list.isEmpty) return [];
+    final start = (_currentPage - 1) * _pageSize;
+    if (start >= list.length) {
+      final lastPageStart = ((totalPages - 1) * _pageSize).clamp(0, list.length);
+      return list.sublist(lastPageStart);
+    }
+    final end = (start + _pageSize) > list.length ? list.length : (start + _pageSize);
+    return list.sublist(start, end);
+  }
 
   int get totalProductsCount => _products.length;
   int get activeProductsCount => _products.where((p) => p.isActive).length;
@@ -81,6 +111,35 @@ class ProductProvider extends ChangeNotifier {
     return list;
   }
 
+  /// Pagination methods
+  void setPage(int page) {
+    final clamped = page.clamp(1, totalPages);
+    if (clamped == _currentPage) return;
+    _currentPage = clamped;
+    notifyListeners();
+  }
+
+  void nextPage() {
+    if (hasNextPage) {
+      _currentPage++;
+      notifyListeners();
+    }
+  }
+
+  void previousPage() {
+    if (hasPreviousPage) {
+      _currentPage--;
+      notifyListeners();
+    }
+  }
+
+  void setPageSize(int size) {
+    if (size <= 0 || size == _pageSize) return;
+    _pageSize = size;
+    _currentPage = 1;
+    notifyListeners();
+  }
+
   /// Loads all products and categories from repository
   Future<void> loadProducts({bool refresh = false}) async {
     if (_products.isNotEmpty && !refresh) return;
@@ -100,6 +159,7 @@ class ProductProvider extends ChangeNotifier {
         lowStockOnly: _lowStockOnly,
         searchQuery: _searchQuery,
       );
+      _currentPage = 1;
       _errorMessage = null;
     } on AppException catch (e) {
       _errorMessage = e.message;
@@ -113,35 +173,41 @@ class ProductProvider extends ChangeNotifier {
 
   void setSearchQuery(String query) {
     _searchQuery = query;
+    _currentPage = 1;
     _fetchWithCurrentFilters();
   }
 
   void setCategory(String category) {
     if (_selectedCategory == category) return;
     _selectedCategory = category;
+    _currentPage = 1;
     _fetchWithCurrentFilters();
   }
 
   void setGender(String gender) {
     if (_selectedGender == gender) return;
     _selectedGender = gender;
+    _currentPage = 1;
     _fetchWithCurrentFilters();
   }
 
   void setLowStockOnly(bool value) {
     if (_lowStockOnly == value) return;
     _lowStockOnly = value;
+    _currentPage = 1;
     _fetchWithCurrentFilters();
   }
 
   void setIncludeInactive(bool value) {
     if (_includeInactive == value) return;
     _includeInactive = value;
+    _currentPage = 1;
     _fetchWithCurrentFilters();
   }
 
   void setSortOption(ProductSortOption option) {
     _sortOption = option;
+    _currentPage = 1;
     notifyListeners();
   }
 

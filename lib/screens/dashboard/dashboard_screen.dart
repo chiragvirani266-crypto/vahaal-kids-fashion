@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/routes/app_navigator.dart';
+import '../../models/analytics_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/bill_provider.dart';
 import '../../providers/dashboard_provider.dart';
@@ -12,9 +13,6 @@ import '../../widgets/common/app_confirm_dialog.dart';
 import '../../widgets/common/app_error_state.dart';
 import '../../widgets/common/app_loading_state.dart';
 import '../analytics/sales_analytics_screen.dart';
-import '../analytics/widgets/sales_line_chart_card.dart';
-import '../analytics/widgets/top_customers_card.dart';
-import '../analytics/widgets/top_selling_products_card.dart';
 import '../billing/bill_list_screen.dart';
 import '../billing/billing_screen.dart';
 import '../customers/customer_list_screen.dart';
@@ -38,7 +36,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<DashboardProvider>().loadDashboard();
+      context.read<DashboardProvider>().loadOverview();
     });
   }
 
@@ -65,6 +63,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     setState(() {
       _selectedDesktopIndex = index;
     });
+    if (index == 7) {
+      context.read<DashboardProvider>().loadAnalytics();
+    }
   }
 
   void _showMobileMoreSheet(BuildContext context) {
@@ -640,7 +641,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         icon: const Icon(Icons.refresh_rounded),
                         tooltip: 'Refresh Store Data',
                         onPressed: () {
-                          dashboardProvider.loadDashboard(refresh: true);
+                          if (_selectedDesktopIndex == 7) {
+                            dashboardProvider.loadAnalytics(refresh: true);
+                          } else {
+                            dashboardProvider.loadOverview(refresh: true);
+                          }
                         },
                       ),
                     ],
@@ -690,8 +695,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final dashboardProvider = context.watch<DashboardProvider>();
     final billProvider = context.watch<BillProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final user = authProvider.userProfile;
-    final role = user?.role ?? 'cashier';
 
     final mobileScreens = [
       _buildOverviewContent(context, authProvider, dashboardProvider, false, size),
@@ -732,11 +735,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
         actions: [
-          AppBadge.role(role),
           IconButton(
             tooltip: 'Refresh',
             icon: const Icon(Icons.refresh_rounded),
-            onPressed: () => dashboardProvider.loadDashboard(refresh: true),
+            onPressed: () => dashboardProvider.loadOverview(refresh: true),
           ),
           IconButton(
             tooltip: 'Sign Out',
@@ -828,21 +830,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
     bool isDesktop,
     Size size,
   ) {
-    if (dashboardProvider.isLoading && dashboardProvider.chartPoints.isEmpty) {
-      return const AppLoadingState(message: 'Loading store metrics & sales data...');
+    if (dashboardProvider.isLoading && !dashboardProvider.isOverviewLoaded) {
+      return const AppLoadingState(message: 'Loading store metrics...');
     }
 
-    if (dashboardProvider.errorMessage != null &&
-        dashboardProvider.overview.totalProductsCount == 0) {
+    if (dashboardProvider.errorMessage != null && !dashboardProvider.isOverviewLoaded) {
       return AppErrorState(
         message: dashboardProvider.errorMessage!,
-        onRetry: () => dashboardProvider.loadDashboard(refresh: true),
+        onRetry: () => dashboardProvider.loadOverview(refresh: true),
       );
     }
 
     final overview = dashboardProvider.overview;
     final user = authProvider.userProfile;
     final role = user?.role ?? 'cashier';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return SingleChildScrollView(
       padding: EdgeInsets.all(isDesktop ? 24 : 16),
@@ -947,7 +949,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 24),
 
           // Section Header: Core KPI Cards
-          Row(
+          Column(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
@@ -1112,27 +1114,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: 24),
 
-          // Embedded Interactive Sales Line Chart (Daily, Monthly, Yearly)
-          const SalesLineChartCard(enableDateRangePicker: true),
+          // Dedicated Sales Charts & Revenue Analytics Action Card
+          _buildAnalyticsBannerCard(context, isDark, isDesktop, overview),
           const SizedBox(height: 24),
-
-          // Top Products and Top Customers Row
-          if (isDesktop)
-            const Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(child: TopSellingProductsCard()),
-                SizedBox(width: 16),
-                Expanded(child: TopCustomersCard()),
-              ],
-            )
-          else ...[
-            const TopSellingProductsCard(),
-            const SizedBox(height: 16),
-            const TopCustomersCard(),
-          ],
-
-          const SizedBox(height: 28),
 
           // Quick Actions & Modules Section Header
           Row(
@@ -1259,6 +1243,242 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     AppNavigator.toLabelPrint(context: context);
                   }
                 },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnalyticsBannerCard(
+    BuildContext context,
+    bool isDark,
+    bool isDesktop,
+    DashboardOverview overview,
+  ) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.cardDark : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? AppColors.borderDark : AppColors.borderLight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF8B5CF6).withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.insights_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Flexible(
+                          child: Text(
+                            'Sales Trends & Interactive Charts',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF8B5CF6).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Text(
+                            'Dedicated Hub',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF8B5CF6),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Interactive daily, monthly, and yearly revenue graphs, top-selling items, and VIP customer insights are located on the separate Analytics screen for instant dashboard loading.',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(height: 1),
+          const SizedBox(height: 16),
+          // Quick Key Performance Strip & Open Button
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isNarrow = constraints.maxWidth < 600;
+              final statsRow = Wrap(
+                spacing: 16,
+                runSpacing: 8,
+                children: [
+                  _buildBannerStatPill(
+                    label: 'This Month',
+                    value: '₹${overview.monthSales.toStringAsFixed(0)}',
+                    subtext: '${overview.monthBillsCount} bills',
+                    isDark: isDark,
+                  ),
+                  _buildBannerStatPill(
+                    label: 'This Year',
+                    value: '₹${overview.yearSales.toStringAsFixed(0)}',
+                    subtext: '${overview.yearBillsCount} bills',
+                    isDark: isDark,
+                  ),
+                  _buildBannerStatPill(
+                    label: 'Lifetime Sales',
+                    value: '₹${overview.totalSales.toStringAsFixed(0)}',
+                    subtext: '${overview.totalBillsCount} bills',
+                    isDark: isDark,
+                  ),
+                ],
+              );
+
+              final actionBtn = ElevatedButton.icon(
+                onPressed: () {
+                  if (isDesktop) {
+                    _onSelectDesktopDestination(7);
+                  } else {
+                    AppNavigator.toReports(context: context);
+                  }
+                },
+                icon: const Icon(Icons.bar_chart_rounded, size: 18),
+                label: const Text(
+                  'Open Charts & Analytics',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF8B5CF6),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  elevation: 0,
+                ),
+              );
+
+              if (isNarrow) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    statsRow,
+                    const SizedBox(height: 14),
+                    actionBtn,
+                  ],
+                );
+              }
+
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(child: statsRow),
+                  const SizedBox(width: 16),
+                  actionBtn,
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBannerStatPill({
+    required String label,
+    required String value,
+    required String subtext,
+    required bool isDark,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceDark : AppColors.backgroundLight,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isDark ? AppColors.borderDark : AppColors.borderLight,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w500,
+              color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+            ),
+          ),
+          const SizedBox(height: 1),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimaryLight,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                '($subtext)',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                ),
               ),
             ],
           ),
