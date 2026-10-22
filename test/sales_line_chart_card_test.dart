@@ -97,4 +97,44 @@ void main() {
     expect(find.byType(SalesLineChartCard), findsOneWidget);
     expect(find.text('Sales & Revenue Trend'), findsOneWidget);
   });
+
+  testWidgets('Tapping date range picker icon opens showDateRangePicker without assertion failure in Monthly/Yearly mode', (tester) async {
+    final repo = MockDashboardRepo();
+    final provider = DashboardProvider(repository: repo);
+
+    // Switch to Monthly grouping so endDate is Dec 31
+    await provider.setGrouping(SalesChartGrouping.monthly);
+
+    tester.view.physicalSize = const Size(800, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider<DashboardProvider>.value(
+        value: provider,
+        child: MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const Scaffold(
+            body: SingleChildScrollView(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: SalesLineChartCard(enableDateRangePicker: true),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // Tap the date range icon button
+    final dateIcon = find.byIcon(Icons.date_range_rounded);
+    expect(dateIcon, findsOneWidget);
+    await tester.tap(dateIcon);
+    await tester.pump();
+
+    // Verify date picker opened and no assertion exception was thrown
+    expect(tester.takeException(), isNull);
+  });
 }
+

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../theme/app_colors.dart';
@@ -47,20 +46,20 @@ class _SalesAnalyticsScreenState extends State<SalesAnalyticsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Executive Store & Sales Performance KPI Grid (Compact Heights)
+            // Executive Store & Sales Performance KPI Grid (Same Design as Dashboard)
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: isDesktop ? 4 : (size.width > 600 ? 2 : 1),
+              crossAxisCount: isDesktop ? 4 : (size.width > 600 ? 3 : 2),
               crossAxisSpacing: 14,
               mainAxisSpacing: 14,
-              childAspectRatio: isDesktop ? 2.8 : 2.6,
+              childAspectRatio: isDesktop ? 1.7 : (size.width > 600 ? 1.55 : 1.3),
               children: [
                 // 1. This Month Sales
                 _AnalyticsKpiCard(
                   title: 'This Month Sales',
                   value: '₹${overview.monthSales.toStringAsFixed(2)}',
-                  subtitle: '${overview.monthBillsCount} bills in ${DateFormat('MMMM yyyy').format(DateTime.now())}',
+                  subtitle: '${overview.monthBillsCount} bills this month',
                   icon: Icons.calendar_month_rounded,
                   color: AppColors.secondary,
                 ),
@@ -72,27 +71,27 @@ class _SalesAnalyticsScreenState extends State<SalesAnalyticsScreen> {
                   icon: Icons.auto_graph_rounded,
                   color: const Color(0xFF8B5CF6),
                 ),
-                // 3. Total Sales
+                // 3. Lifetime Sales
                 _AnalyticsKpiCard(
-                  title: 'Total Sales (Lifetime)',
+                  title: 'Lifetime Sales',
                   value: '₹${overview.totalSales.toStringAsFixed(2)}',
-                  subtitle: '${overview.totalBillsCount} lifetime invoices',
+                  subtitle: '${overview.totalBillsCount} total bills',
                   icon: Icons.account_balance_wallet_rounded,
                   color: const Color(0xFF10B981),
                 ),
-                // 4. Total Collection
+                // 4. Average Ticket
                 _AnalyticsKpiCard(
-                  title: 'Total Collection',
-                  value: '₹${overview.totalSales.toStringAsFixed(2)}',
-                  subtitle: 'Avg ticket ₹${avgBillValue.toStringAsFixed(2)} / bill',
+                  title: 'Average Ticket',
+                  value: '₹${avgBillValue.toStringAsFixed(2)}',
+                  subtitle: 'Avg spend per invoice',
                   icon: Icons.payments_rounded,
                   color: const Color(0xFF0EA5E9),
                 ),
-                // 5. Total Products
+                // 5. Products Catalog
                 _AnalyticsKpiCard(
                   title: 'Products Catalog',
                   value: '${overview.totalProductsCount} Products',
-                  subtitle: '${overview.totalStockUnits} stock items cataloged',
+                  subtitle: '${overview.totalStockUnits} units in stock',
                   icon: Icons.checkroom_rounded,
                   color: const Color(0xFF6366F1),
                   onTap: () {
@@ -101,11 +100,11 @@ class _SalesAnalyticsScreenState extends State<SalesAnalyticsScreen> {
                     );
                   },
                 ),
-                // 6. Low Stock Products
+                // 6. Low Stock Alert
                 _AnalyticsKpiCard(
                   title: 'Low Stock Alert',
-                  value: '${overview.lowStockCount} Variants',
-                  subtitle: overview.lowStockCount > 0 ? 'Requires replenishment' : 'Stock levels healthy',
+                  value: '${overview.lowStockCount} Items',
+                  subtitle: overview.lowStockCount > 0 ? 'Needs reorder' : 'Stock levels healthy',
                   icon: Icons.warning_amber_rounded,
                   color: AppColors.warning,
                   onTap: () {
@@ -114,11 +113,11 @@ class _SalesAnalyticsScreenState extends State<SalesAnalyticsScreen> {
                     );
                   },
                 ),
-                // 7. Total Customers
+                // 7. Store Customers
                 _AnalyticsKpiCard(
                   title: 'Store Customers',
                   value: '${overview.totalCustomersCount} Members',
-                  subtitle: 'Registered store directory',
+                  subtitle: 'Registered buyers',
                   icon: Icons.people_alt_rounded,
                   color: AppColors.tertiary,
                   onTap: () {
@@ -131,7 +130,7 @@ class _SalesAnalyticsScreenState extends State<SalesAnalyticsScreen> {
                 _AnalyticsKpiCard(
                   title: "Today's Sales",
                   value: '₹${overview.todaySales.toStringAsFixed(2)}',
-                  subtitle: '${overview.todayBillsCount} bills recorded today',
+                  subtitle: '${overview.todayBillsCount} bills today',
                   icon: Icons.today_rounded,
                   color: AppColors.primary,
                 ),
@@ -161,54 +160,167 @@ class _SalesAnalyticsScreenState extends State<SalesAnalyticsScreen> {
 
             const SizedBox(height: 24),
 
-            // Low Stock Action Banner
+            // Low Stock Action Banner (Redesigned)
             if (overview.lowStockCount > 0)
               Container(
-                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.only(top: 8),
                 decoration: BoxDecoration(
-                  color: AppColors.warning.withAlpha(20),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppColors.warning.withAlpha(60)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.warning_amber_rounded,
-                        color: AppColors.warning, size: 28),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${overview.lowStockCount} Product Variants Require Restock',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimaryLight,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          const Text(
-                            'Inventory levels are below the minimum threshold. Restock now to prevent missed sales.',
-                            style: TextStyle(fontSize: 11, color: AppColors.textSecondaryLight),
-                          ),
-                        ],
-                      ),
-                    ),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const LowStockScreen()),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.warning,
-                        foregroundColor: Colors.white,
-                      ),
-                      icon: const Icon(Icons.inventory_rounded, size: 16),
-                      label: const Text('View Low Stock'),
+                  gradient: LinearGradient(
+                    colors: isDark
+                        ? [
+                            AppColors.warning.withValues(alpha: 0.12),
+                            const Color(0xFF1E1B18),
+                          ]
+                        : [
+                            const Color(0xFFFFFBEB),
+                            const Color(0xFFFEF3C7),
+                          ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: AppColors.warning.withValues(alpha: isDark ? 0.35 : 0.45),
+                    width: 1.2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.warning.withValues(alpha: isDark ? 0.1 : 0.08),
+                      blurRadius: 14,
+                      offset: const Offset(0, 4),
                     ),
                   ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isNarrow = constraints.maxWidth < 560;
+
+                      final iconAndText = Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: AppColors.warning.withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: AppColors.warning.withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.warning_amber_rounded,
+                              color: AppColors.warning,
+                              size: 26,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        '${overview.lowStockCount} Product Variants Need Restock',
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w700,
+                                          color: isDark
+                                              ? AppColors.textPrimaryDark
+                                              : const Color(0xFF92400E),
+                                          letterSpacing: -0.2,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.warning.withValues(alpha: 0.2),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.priority_high_rounded,
+                                              size: 11, color: AppColors.warning),
+                                          SizedBox(width: 2),
+                                          Text(
+                                            'Attention',
+                                            style: TextStyle(
+                                              fontSize: 10.5,
+                                              fontWeight: FontWeight.w700,
+                                              color: AppColors.warning,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 5),
+                                Text(
+                                  'Current inventory levels are below the required threshold. Restock these items to maintain peak sales availability.',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    height: 1.35,
+                                    color: isDark
+                                        ? AppColors.textSecondaryDark
+                                        : const Color(0xFF78350F).withValues(alpha: 0.9),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+
+                      final actionButton = ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => const LowStockScreen()),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.warning,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+                        label: const Text(
+                          'Review Low Stock',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                      );
+
+                      if (isNarrow) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            iconAndText,
+                            const SizedBox(height: 14),
+                            actionButton,
+                          ],
+                        );
+                      }
+
+                      return Row(
+                        children: [
+                          Expanded(child: iconAndText),
+                          const SizedBox(width: 16),
+                          actionButton,
+                        ],
+                      );
+                    },
+                  ),
                 ),
               ),
           ],
@@ -225,12 +337,13 @@ class _SalesAnalyticsScreenState extends State<SalesAnalyticsScreen> {
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
       appBar: AppBar(
-        title: const Row(
-          children: [
-            Icon(Icons.bar_chart_rounded, color: AppColors.primary, size: 22),
-            SizedBox(width: 10),
-            Text('Sales & Revenue Analytics'),
-          ],
+        title: const Text(
+          'Sales & Revenue Analytics',
+          style: TextStyle(
+            fontSize: 16.5,
+            fontWeight: FontWeight.w600,
+          ),
+          overflow: TextOverflow.ellipsis,
         ),
         actions: [
           IconButton(
@@ -271,65 +384,95 @@ class _AnalyticsKpiCard extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
         decoration: BoxDecoration(
-          color: isDark ? AppColors.cardDark : Colors.white,
+          color: isDark ? AppColors.cardDark : AppColors.cardLight,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isDark ? AppColors.borderDark : AppColors.borderLight,
+            color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color.withAlpha(25),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: color, size: 20),
+            // Top Row: Icon Container & Optional Navigation Indicator
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(icon, color: color, size: 18),
+                ),
+                if (onTap != null)
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 11,
+                    color: isDark ? Colors.white30 : Colors.black26,
+                  ),
+              ],
             ),
-            const SizedBox(width: 12),
+            const SizedBox(height: 6),
+
+            // Content Area: Metric Value, Title, and Subtitle
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+              child: Align(
+                alignment: Alignment.bottomLeft,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        value,
+                        style: TextStyle(
+                          fontSize: 15.5,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    value,
-                    style: const TextStyle(
-                      fontSize: 15.5,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimaryLight,
+                    const SizedBox(height: 2),
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                        height: 1.15,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                    const SizedBox(height: 1),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: isDark ? AppColors.textMutedDark : AppColors.textMutedLight,
+                        height: 1.15,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-            if (onTap != null)
-              const Icon(Icons.chevron_right_rounded, size: 16, color: AppColors.textMutedLight),
           ],
         ),
       ),

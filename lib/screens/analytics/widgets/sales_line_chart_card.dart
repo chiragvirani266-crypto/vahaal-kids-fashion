@@ -16,23 +16,40 @@ class SalesLineChartCard extends StatelessWidget {
 
   Future<void> _selectCustomDateRange(BuildContext context) async {
     final provider = context.read<DashboardProvider>();
-    final initialDateRange = DateTimeRange(
-      start: provider.startDate,
-      end: provider.endDate,
+    final now = DateTime.now();
+    final firstDate = DateTime(2020, 1, 1);
+    final maxDate = DateTime(now.year + 1, 12, 31);
+    final lastDate = DateUtils.dateOnly(
+      provider.endDate.isAfter(maxDate) ? provider.endDate : maxDate,
     );
+
+    DateTime start = DateUtils.dateOnly(provider.startDate);
+    DateTime end = DateUtils.dateOnly(provider.endDate);
+
+    if (start.isBefore(firstDate)) start = firstDate;
+    if (end.isAfter(lastDate)) end = lastDate;
+    if (start.isAfter(end)) start = end;
+
+    final initialDateRange = DateTimeRange(start: start, end: end);
 
     final picked = await showDateRangePicker(
       context: context,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now().add(const Duration(days: 1)),
+      firstDate: firstDate,
+      lastDate: lastDate,
       initialDateRange: initialDateRange,
       builder: (context, child) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppColors.primary,
-              onPrimary: Colors.white,
-            ),
+            colorScheme: isDark
+                ? Theme.of(context).colorScheme.copyWith(
+                    primary: AppColors.primary,
+                    onPrimary: Colors.white,
+                  )
+                : const ColorScheme.light(
+                    primary: AppColors.primary,
+                    onPrimary: Colors.white,
+                  ),
           ),
           child: child!,
         );
