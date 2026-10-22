@@ -728,9 +728,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
             const SizedBox(width: 10),
-            Text(
-              mobileTitles[_mobileIndex],
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+            Expanded(
+              child: Text(
+                mobileTitles[_mobileIndex],
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
@@ -888,7 +891,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      Row(
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 8,
+                        runSpacing: 4,
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -906,9 +912,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
+                          if ((user?.email ?? '').isNotEmpty)
+                            Text(
                               user?.email ?? '',
                               style: TextStyle(
                                 fontSize: 13,
@@ -916,7 +921,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
-                          ),
                         ],
                       ),
                     ],
@@ -929,6 +933,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     borderRadius: BorderRadius.circular(30),
                   ),
                   child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(Icons.circle, size: 8, color: AppColors.success),
                       const SizedBox(width: 6),
@@ -949,15 +954,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 24),
 
           // Section Header: Core KPI Cards
-          Column(
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Sales & Store Overview',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimaryLight,
+              Expanded(
+                child: Text(
+                  'Sales & Store Overview',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               TextButton.icon(
@@ -969,7 +977,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   }
                 },
                 icon: const Icon(Icons.analytics_rounded, size: 16),
-                label: const Text('Detailed Analytics'),
+                label: const Text('Analytics'),
               ),
             ],
           ),
@@ -1122,57 +1130,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Quick Actions & Modules',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimaryLight,
+              Expanded(
+                child: Text(
+                  'Store Modules & Tools',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
+              const SizedBox(width: 8),
               AppBadge.role(role),
             ],
           ),
           const SizedBox(height: 14),
 
-          // Modules Grid
+          // Modules Grid (Excluding items already pinned to Bottom Navigation Bar: Billing, Products, Invoices)
           GridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: isDesktop ? 4 : (size.width > 600 ? 2 : 1),
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 1.6,
+            crossAxisCount: isDesktop ? 3 : (size.width > 600 ? 3 : 2),
+            crossAxisSpacing: 14,
+            mainAxisSpacing: 14,
+            childAspectRatio: isDesktop ? 1.7 : (size.width > 600 ? 1.45 : 1.2),
             children: [
               _ModuleCard(
-                title: 'Billing & Checkout',
-                description: 'Scan barcode, add customer, discounts, & print bills',
-                icon: Icons.receipt_long_rounded,
-                color: AppColors.primary,
-                onTap: () {
-                  if (isDesktop) {
-                    _onSelectDesktopDestination(1);
-                  } else {
-                    setState(() => _mobileIndex = 1);
-                  }
-                },
-              ),
-              _ModuleCard(
-                title: 'Product Catalog & Sizes',
-                description: 'Manage 0–12Y sizes, prices, colors & barcodes',
-                icon: Icons.inventory_2_rounded,
-                color: AppColors.secondary,
-                onTap: () {
-                  if (isDesktop) {
-                    _onSelectDesktopDestination(2);
-                  } else {
-                    setState(() => _mobileIndex = 2);
-                  }
-                },
-              ),
-              _ModuleCard(
                 title: 'Stock & Inventory',
-                description: 'Stock in, adjustments, audits & movement ledger',
                 icon: Icons.warehouse_rounded,
                 color: AppColors.tertiary,
                 onTap: () {
@@ -1184,21 +1169,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 },
               ),
               _ModuleCard(
-                title: 'Sales & Bills History',
-                description: 'Search invoices, WhatsApp share & reprints',
-                icon: Icons.history_rounded,
-                color: const Color(0xFF0EA5E9),
-                onTap: () {
-                  if (isDesktop) {
-                    _onSelectDesktopDestination(4);
-                  } else {
-                    setState(() => _mobileIndex = 3);
-                  }
-                },
-              ),
-              _ModuleCard(
                 title: 'Customer Directory',
-                description: 'Track loyalty, birthdates & purchase records',
                 icon: Icons.person_search_rounded,
                 color: AppColors.accent,
                 onTap: () {
@@ -1210,8 +1181,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 },
               ),
               _ModuleCard(
+                title: 'Barcode Label Printing',
+                icon: Icons.qr_code_2_rounded,
+                color: const Color(0xFF10B981),
+                onTap: () {
+                  if (isDesktop) {
+                    _onSelectDesktopDestination(6);
+                  } else {
+                    AppNavigator.toLabelPrint(context: context);
+                  }
+                },
+              ),
+              _ModuleCard(
                 title: 'Sales & Revenue Analytics',
-                description: 'Daily, monthly & yearly interactive charts',
                 icon: Icons.bar_chart_rounded,
                 color: const Color(0xFF8B5CF6),
                 onTap: () {
@@ -1224,7 +1206,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               _ModuleCard(
                 title: 'Low Stock Replenishment',
-                description: 'Fast stock in for products below threshold',
                 icon: Icons.warning_amber_rounded,
                 color: AppColors.warning,
                 onTap: () {
@@ -1232,15 +1213,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 },
               ),
               _ModuleCard(
-                title: 'Barcode Label Printing',
-                description: 'Generate price tags for new arrivals',
-                icon: Icons.qr_code_2_rounded,
-                color: const Color(0xFF10B981),
+                title: 'Settings & Hardware',
+                icon: Icons.settings_rounded,
+                color: const Color(0xFF0EA5E9),
                 onTap: () {
                   if (isDesktop) {
-                    _onSelectDesktopDestination(6);
+                    _onSelectDesktopDestination(8);
                   } else {
-                    AppNavigator.toLabelPrint(context: context);
+                    AppNavigator.toSettings(context: context);
                   }
                 },
               ),
@@ -1310,13 +1290,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   children: [
                     Row(
                       children: [
-                        const Flexible(
+                        const Expanded(
                           child: Text(
                             'Sales Trends & Interactive Charts',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -1683,14 +1664,12 @@ class _KpiCard extends StatelessWidget {
 // =============================================================================
 class _ModuleCard extends StatelessWidget {
   final String title;
-  final String description;
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
 
   const _ModuleCard({
     required this.title,
-    required this.description,
     required this.icon,
     required this.color,
     required this.onTap,
@@ -1704,48 +1683,59 @@ class _ModuleCard extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: isDark ? AppColors.cardDark : AppColors.cardLight,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: color, size: 22),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, color: color, size: 22),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 12,
+                  color: isDark ? Colors.white24 : Colors.black26,
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: Align(
+                alignment: Alignment.bottomLeft,
+                child: Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimaryLight,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  description,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                    height: 1.25,
+                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-              ],
+              ),
             ),
           ],
         ),
